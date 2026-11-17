@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Viajes por Catalunya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,500;1,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a friendly day-trip planner, clear like a station map, warm like a travel poster
+   IDEA: an illustrated relief map of Catalonia with the Rodalies network; choosing a town lights up the journey from Badalona
+   PICTURE: pannable, zoomable map with sea, mountains and real line colours; a little train runs along the chosen route
+   COLOUR and TYPE: Mediterranean blue sea, warm land, Rodalies orange accent; Barlow Condensed titles, Barlow text
+   LAYOUT: title, destination picker, big map; step-by-step itinerary beside it (below it on phones) */
+:root{color-scheme:light dark;
+--bg:light-dark(#fbfaf6,#0f1615);--ink:light-dark(#17201f,#eef2ef);--mut:light-dark(#5d6966,#a3b0ac);
+--sea1:light-dark(#d6ecf2,#0c2a35);--sea2:light-dark(#a9d4e2,#0a2029);--wave:light-dark(#ffffff,#2b5564);
+--land1:light-dark(#e6e0c8,#1c2622);--land2:light-dark(#f7f3e8,#232d2a);--coast:light-dark(#8fbfcd,#356777);
+--mt:light-dark(#c9bf9f,#36423d);--mt2:light-dark(#b2a684,#2c3632);--snow:light-dark(#ffffff,#9fb1ab);
+--card:light-dark(#ffffff,#172120);--line:light-dark(#e3ded2,#2a3532);--acc:#e8730c;--ok:#15803d;--okt:light-dark(#15803d,#4ade80);--x:light-dark(#9f1239,#fda4af);--reg:light-dark(#475569,#94a3b8);--pl-dia:light-dark(#15803d,#4ade80);--pl-largo:light-dark(#b45309,#fbbf24);--pl-noche:light-dark(#1e40af,#93c5fd)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip}
+.band{padding:clamp(16px,3vw,36px) max(4vw,14px);max-width:1280px;margin:auto}
+h1{font:700 clamp(30px,6vw,46px)/1.05 "Barlow Condensed",sans-serif;margin:0 0 4px;text-wrap:balance}
+.lead{color:var(--mut);margin:0 0 14px;max-width:64ch}
+.tabs,.dest{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px}
+.tab,.d{flex:none;white-space:nowrap;min-height:44px;padding:0 15px;border-radius:22px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px}
+.tab[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab i{width:10px;height:10px;border-radius:50%}
+.car{position:relative;margin:4px 0 6px}
+.dest{gap:12px;scroll-snap-type:x mandatory;scroll-padding:0 2px;padding:4px 2px 12px}
+.card{flex:none;width:clamp(190px,46vw,224px);scroll-snap-align:start;border-radius:16px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);padding:0;text-align:left;cursor:pointer;overflow:hidden;font:inherit;transition:transform .2s,box-shadow .2s}
+.card svg{display:block;width:100%;height:84px}
+.card .cb{padding:9px 12px 11px}
+.card b{display:block;font:700 19px/1.1 "Barlow Condensed",Barlow,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .cm{font-size:13.5px;color:var(--mut);white-space:nowrap}
+.card .tag{margin-top:6px}
+.tag.pl{background:color-mix(in srgb,var(--pc) 14%,transparent);color:var(--pc)}
+.sleep{border:1.5px solid color-mix(in srgb,#1e40af 30%,var(--line));border-radius:12px;padding:12px 14px;margin:0 0 12px}
+.sleep h3{font:700 20px "Barlow Condensed",Barlow,sans-serif;margin:0 0 4px}.sleep p{margin:0 0 8px;font-size:15px}
+.sleep ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.sleep a{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;padding:8px 12px;border-radius:10px;background:light-dark(#eff4ff,#14203a);color:light-dark(#1e3a8a,#bfdbfe);font-weight:600;text-decoration:none;font-size:15px}
+.sleep a::after{content:"↗";flex:none}
+.sleep small{display:block;color:var(--mut);font-size:13px;margin-top:8px}
+.card{position:relative}.star{position:absolute;left:8px;top:8px;background:#fff;color:#b45309;font:700 12.5px Barlow,sans-serif;border-radius:999px;padding:1px 8px;box-shadow:0 2px 6px #0003}
+.card[aria-pressed=true]{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 10px 24px -14px #0007;transform:translateY(-2px)}
+.card[aria-pressed=true] .cm::after{content:" · viendo";color:var(--acc);font-weight:600}
+.arr{position:absolute;top:44px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 20px Barlow,sans-serif;cursor:pointer;box-shadow:0 6px 16px -8px #0006;display:none}
+.arr.l{left:-8px}.arr.r{right:-8px}
+@media(hover:hover) and (min-width:781px){.arr{display:block}}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.wrap{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px 18px;align-items:stretch;margin-top:8px}
+.mapcol{grid-column:1;grid-row:1}.panel{grid-column:2;grid-row:1}.wrap .below{grid-column:1/-1;grid-row:2;display:grid;gap:10px}
+.mhint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0b3a53e6;color:#fff;font:600 15px Barlow,sans-serif;padding:10px 16px;border-radius:12px;pointer-events:none;opacity:0;transition:opacity .25s;text-align:center;max-width:80%}
+.mhint.on{opacity:1}
+.abono{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 14px}
+.abono summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;font:700 17px Barlow,sans-serif;list-style:none}
+.abono summary::-webkit-details-marker{display:none}
+.abono summary::after{content:"▾";margin-left:auto;color:var(--mut)}.abono[open] summary::after{content:"▴"}
+.abono .ab2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px;margin-bottom:12px}
+.abono .ab2>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.abono h4{margin:0 0 4px;font:700 18px Barlow,sans-serif}.abono h4 small{font-weight:600;color:var(--mut)}
+.abono ul{margin:4px 0 0;padding-left:18px;font-size:14.5px}.abono p{margin:4px 0;font-size:14.5px}
+.abono .chk{font-size:12.5px;color:var(--mut);font-style:italic}
+.planb{margin:4px 0 12px;padding:10px 12px;border-radius:10px;background:light-dark(#eef4f6,#14242a);font-size:14.5px}
+.planb b{color:var(--ink)}
+.tq{flex:none;width:170px;min-height:38px;border-radius:19px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:500 15px Barlow,sans-serif;padding:0 14px}
+.fbar{display:flex;align-items:center;gap:10px;background:light-dark(#dcd5c3,#26302e);border-radius:14px;padding:8px 12px;margin:2px 0 14px}
+.fbar .filt{background:none;margin:0;padding:0;flex:1;min-width:0}
+.edge.more{-webkit-mask-image:linear-gradient(90deg,#000 80%,transparent);mask-image:linear-gradient(90deg,#000 80%,transparent)}
+.foot{margin:18px 0 6px;text-align:center;color:var(--mut);font-size:13.5px}
+@media(min-width:781px){.gdd,.gd dd,.gwh>p,.gls{max-width:70ch}}
+
+#pins,#route,#train{pointer-events:none}
+.map{touch-action:pan-y;position:sticky;top:12px;height:100%;min-height:440px;max-height:max(78vh,440px);border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--sea2);box-shadow:0 10px 30px -18px #0006}
+.map svg{position:absolute;inset:0;width:100%;height:100%;touch-action:pan-y;cursor:grab;user-select:none}
+.map svg.drag{cursor:grabbing}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.zoom button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 22px Barlow,sans-serif;cursor:pointer;box-shadow:0 4px 12px -6px #0005}
+.sum{position:absolute;left:10px;bottom:10px;right:112px;display:flex;flex-wrap:wrap;gap:6px}
+.sum span{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:5px 10px;font-size:14px;font-weight:600;white-space:nowrap;box-shadow:0 4px 12px -6px #0005}
+.land{fill:url(#lg);stroke:var(--coast);stroke-width:1.6}
+.rail{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.base.fade{opacity:.28}
+.mtn{fill:var(--mt)}.mtn2{fill:var(--mt2)}.snow{fill:var(--snow)}
+.geo{font-family:Barlow,sans-serif;font-style:italic;font-weight:500;fill:var(--mut);opacity:.85}
+.sea-l{fill:light-dark(#5e9db1,#4f8796);font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:600;letter-spacing:.3em}
+.pin{cursor:pointer}
+.pin text,.st text{font-family:Barlow,sans-serif;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--land2);stroke-linejoin:round;pointer-events:none}
+.st text{font-weight:500;fill:var(--mut)}
+.pin.dim{opacity:.35}
+.pulse{fill:none;stroke:var(--acc);animation:p 1.8s ease-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes p{from{opacity:.9;transform:scale(.6)}to{opacity:0;transform:scale(2.2)}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 18px 8px}
+.zt{display:inline-block;font-size:13px;font-weight:600;color:#fff;border-radius:6px;padding:1px 8px}
+.panel h2{font:700 32px/1.05 "Barlow Condensed",sans-serif;margin:6px 0 2px}
+.tot{color:var(--mut);font-size:15px;margin-bottom:12px}
+.tot b{color:var(--ink)}
+ol.steps{list-style:none;margin:0;padding:0;position:relative}
+.step{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding-bottom:16px;position:relative}
+.step:not(:last-child)::before{content:"";position:absolute;left:19px;top:40px;bottom:0;width:4px;border-radius:2px;background:var(--c)}
+.ic{width:40px;height:40px;border-radius:50%;background:var(--c);display:grid;place-items:center;color:#fff}
+.ic svg{width:22px;height:22px}
+.step h4{margin:2px 0 0;font-size:16px;line-height:1.35}
+.badge{display:inline-block;font:700 13px Barlow,sans-serif;color:#fff;background:var(--c);border-radius:5px;padding:0 6px;margin-right:4px;vertical-align:1px}
+.badge.dk{color:#1b1b1b}.badge.rg,.step.rg .ic{color:light-dark(#fff,#0f172a)}
+.step p{margin:2px 0 0;color:var(--mut);font-size:14.5px}
+.tag{display:inline-block;font-size:12.5px;font-weight:600;border-radius:6px;padding:0 7px;margin-top:4px;white-space:nowrap}
+.tag.in{background:light-dark(#dcfce7,#0f2e1b);color:light-dark(#166534,#86efac)}
+.tag.out{background:light-dark(#fde8ec,#3a1420);color:light-dark(#9f1239,#fda4af)}
+.mins{white-space:nowrap;font-weight:600;color:var(--ink)}
+.arrive{background:light-dark(#fff4ea,#2a1d12);border-radius:12px;padding:12px 14px;margin:2px 0 12px}
+.arrive p{margin:0 0 6px}.arrive p:last-child{margin:0}
+.k{font-weight:600}
+.nav{display:flex;gap:8px;margin:4px 0 12px}
+.nav button{flex:1;min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer}
+.note{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 14px;border-radius:12px;background:light-dark(#eef4f6,#14242a);color:var(--mut);font-size:13.5px;line-height:1.45}
+.note b{color:var(--ink)}
+.ni{flex:none;width:20px;height:20px;border-radius:50%;background:#155e75;color:#fff;font:700 13px/20px Barlow,sans-serif;text-align:center;margin-top:1px}
+.info{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.ih{font:700 26px/1.1 "Barlow Condensed",Barlow,sans-serif;margin:0 0 10px}
+.infog{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px;align-items:start}
+.infog>*{margin:0}
+.infog .arrive{columns:2 340px;column-gap:26px}.infog .arrive p{break-inside:avoid}
+.acts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:8px;margin-top:12px}
+.acts .vis,.acts .nav{margin:0}
+
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin:0 0 10px}
+.sw{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;font-weight:600;font-size:15px}
+.sw small{font-weight:400;color:var(--mut)}
+.sw input{position:absolute;opacity:0;width:1px;height:1px}
+.sw .tr{flex:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;transition:background .2s}
+.sw .tr::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0004;transition:transform .2s}
+.sw input:checked+.tr{background:var(--ok)}.sw input:checked+.tr::after{transform:translateX(18px)}
+.sw input:focus-visible+.tr{outline:3px solid var(--acc);outline-offset:2px}
+.cnt{font-size:14px;color:var(--mut);white-space:nowrap}
+.done{position:absolute;right:8px;top:8px;background:var(--ok);color:#fff;font:700 12.5px Barlow,sans-serif;border-radius:999px;padding:1px 8px}
+.back{border-radius:12px;padding:12px 14px;margin:2px 0 12px;background:light-dark(#eef7f0,#11251a)}
+.back.b1{background:light-dark(#fff7e6,#2a210f)}.back.b2{background:light-dark(#fdecec,#2e1414)}
+.back h3{font:700 20px "Barlow Condensed",Barlow,sans-serif;margin:0 0 4px}.back p{margin:0 0 8px;font-size:15px}
+.lk{display:flex;flex-wrap:wrap;gap:6px}
+.lk a,.vis{min-height:40px;display:inline-flex;align-items:center;padding:6px 12px;border-radius:10px;font:600 14.5px Barlow,sans-serif;text-decoration:none;color:var(--ink);background:var(--card);border:1.5px solid var(--line)}
+.lk a::after{content:" ↗";margin-left:4px}
+.vis{width:100%;justify-content:center;min-height:44px;cursor:pointer;margin:0 0 4px}
+.vis.on{background:var(--ok);border-color:var(--ok);color:#fff}
+@media(prefers-reduced-motion:reduce){.sw .tr,.sw .tr::after{transition:none}}
+
+.pas{border-radius:12px;padding:12px 14px;margin:0 0 12px;background:light-dark(#fbf3ec,#2a1d14);border:1.5px solid color-mix(in srgb,#7c4a2d 30%,var(--line))}
+.pas h3{font:700 20px "Barlow Condensed",Barlow,sans-serif;margin:0 0 6px;color:light-dark(#7c4a2d,#e7c4a6)}
+.pas ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}.pas li b{display:block}.pas li span{font-size:15px}
+.pas small{display:block;color:var(--mut);font-size:13px;margin-top:8px}
+.pz{position:absolute;right:8px;top:56px;background:#7c4a2d;color:#fff;font:700 12px Barlow,sans-serif;border-radius:999px;padding:1px 8px}
+
+.hero{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:linear-gradient(135deg,#0b3a53,#155e75 60%,#1b7a8c);color:#fff;border-radius:20px;padding:18px 18px 34px;margin-bottom:10px;overflow:hidden;box-shadow:0 14px 30px -20px #0b3a53}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{flex:none;width:52px;height:52px;border-radius:15px;background:var(--acc);display:grid;place-items:center;box-shadow:0 6px 14px -6px #0008}
+.logo svg{width:38px;height:38px}
+.hero h1{font:700 clamp(28px,7vw,40px)/1 "Barlow Condensed",Barlow,sans-serif;margin:0;color:#fff;letter-spacing:.01em}
+.sub{margin:4px 0 0;font-size:14.5px;color:#d5ecf2}
+.help .hq{display:none}.help{min-height:44px;padding:0 16px;border-radius:22px;border:1.5px solid #ffffff80;background:#ffffff1f;color:#fff;font:600 15px Barlow,sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px;position:relative;z-index:1}
+.help[aria-expanded=true]{background:#fff;color:#0b3a53}
+.chev{transition:transform .25s}.help[aria-expanded=true] .chev{transform:rotate(180deg)}
+.rails{position:absolute;left:0;right:0;bottom:2px;width:100%;height:28px}
+.howto{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s ease;margin-bottom:6px}
+.howto.open{grid-template-rows:1fr}
+.howto>div{overflow:hidden}
+.howto ol{margin:0 0 10px;padding:14px 16px 14px 34px;background:var(--card);border:1px solid var(--line);border-radius:16px;display:grid;gap:7px;font-size:15.5px}
+.howto li::marker{color:var(--acc);font-weight:700}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px 12px}
+@media(max-width:480px){.hero{padding:16px 14px 46px}.help{width:100%;justify-content:center}.sw small{display:block}}
+@media(prefers-reduced-motion:reduce){.howto,.chev{transition:none}}
+
+.glos{margin-top:28px;background:light-dark(#fbf3ec,#211812);border:1px solid color-mix(in srgb,#7c4a2d 25%,var(--line));border-radius:20px;padding:20px 16px}
+.glos h2{font:700 clamp(26px,6vw,34px)/1.05 "Barlow Condensed",Barlow,sans-serif;margin:0 0 4px;color:light-dark(#7c4a2d,#e7c4a6)}
+.gls{margin:0 0 12px;color:var(--mut);font-size:15px}
+#gq{width:100%;min-height:46px;font:16px Barlow,sans-serif;padding:0 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);margin-bottom:12px}
+#gq:focus-visible{outline:3px solid var(--acc);outline-offset:1px}
+.gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.gi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.gi h3{font:700 21px/1.1 "Barlow Condensed",Barlow,sans-serif;margin:0}
+.gi .pr{color:var(--mut);font-size:13.5px;font-style:italic}
+.gi .ct{display:inline-block;font-size:12px;font-weight:600;border-radius:6px;padding:0 7px;margin:6px 0 4px;background:light-dark(#f3e6da,#3a2a1e);color:light-dark(#7c4a2d,#e7c4a6)}
+.gi p{margin:0;font-size:15px}
+.gi button{margin-top:8px;min-height:40px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:600 14.5px Barlow,sans-serif;cursor:pointer}
+.gempty{color:var(--mut)}
+.gcar{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 12px;scrollbar-width:none}
+.gw{flex:none;width:132px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 8px 10px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font:inherit;text-align:center}
+.gw>svg{width:110px;height:72px}
+.gw b{font:700 17px/1.1 "Barlow Condensed",Barlow,sans-serif}
+.gw small{font-size:12.5px;color:var(--mut)}
+.gw[aria-pressed=true]{border-color:#7c4a2d;box-shadow:0 0 0 2px #7c4a2d;transform:translateY(-2px)}
+.gw:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.gd{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.gdh{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:14px;align-items:center}
+.gdart>svg{width:100%;height:auto;display:block}
+.gd h3{font:700 clamp(28px,7vw,36px)/1.05 "Barlow Condensed",Barlow,sans-serif;margin:4px 0 0}
+.gd .pr{color:var(--mut);font-style:italic;font-size:15px}
+.gd .ct{display:inline-block;font-size:12.5px;font-weight:600;border-radius:6px;padding:0 8px;background:light-dark(#f3e6da,#3a2a1e);color:light-dark(#7c4a2d,#e7c4a6)}
+.gdd{margin:8px 0 0;font-size:16px}
+.gd dl{margin:12px 0 0;display:grid;gap:2px}
+.gd dt{font-weight:700;font-size:14.5px;margin-top:10px;color:light-dark(#7c4a2d,#e7c4a6)}
+.gd dd{margin:0;font-size:16px}
+.gd .go{width:100%;min-height:44px;border-radius:10px;border:1.5px solid #7c4a2d;background:#7c4a2d;color:#fff;font:600 15px Barlow,sans-serif;cursor:pointer}
+.gd .nav{align-items:center;margin-top:10px}.gn{flex:none;color:var(--mut);font-size:14px;white-space:nowrap}
+
+.gwh{margin-top:14px;border-radius:14px;padding:14px;background:light-dark(#fbf3ec,#2a1d14);border:1.5px solid color-mix(in srgb,#7c4a2d 30%,var(--line))}
+.gwh h4{font:700 21px/1.1 "Barlow Condensed",Barlow,sans-serif;margin:0 0 4px;color:light-dark(#7c4a2d,#e7c4a6)}
+.gwh>p{margin:0 0 10px;font-size:15.5px}
+.gwh{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.gwh h4,.gwh>p,.gwh .alt{grid-column:1/-1}.gwh>p{margin:0}
+.gt{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.gtn b{display:block;font:700 20px/1.1 "Barlow Condensed",Barlow,sans-serif}
+.gtn span{font-size:13.5px;color:var(--mut)}
+.gt ul{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14.5px}
+.gt .go{margin-top:auto}
+.gd .go.alt{background:transparent;color:light-dark(#7c4a2d,#e7c4a6)}
+.g2{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.g2 button{min-height:40px;padding:0 14px;border-radius:20px;border:1.5px solid #7c4a2d;background:light-dark(#fbf3ec,#2a1d14);color:light-dark(#7c4a2d,#e7c4a6);font:600 14.5px Barlow,sans-serif;cursor:pointer}
+
+.pin-i{width:13px;height:13px;flex:none}
+.gpl{display:flex;align-items:flex-start;justify-content:center;gap:3px;margin-top:4px;font-size:12.5px;font-weight:600;line-height:1.2;color:#9f1239}
+.gpl .pin-i{margin-top:1px}
+.gpl.all{color:var(--mut);font-weight:500}
+.gdart{position:relative}
+.gbadge{display:flex;align-items:center;justify-content:center;gap:5px;min-height:36px;margin:-10px auto 0;position:relative;max-width:100%;padding:4px 14px;border-radius:18px;border:2px solid var(--card);background:#9f1239;color:#fff;font:600 14px/1.2 Barlow,sans-serif;text-align:left;cursor:pointer;box-shadow:0 6px 14px -8px #0008}
+.gbadge.all{background:#7c4a2d}
+.gbadge:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.gdh{margin-bottom:8px}
+.g2 button{display:flex;align-items:center;gap:6px;padding:2px 14px 2px 4px}
+.g2 button svg{width:54px;height:36px;flex:none}
+
+.now{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px;margin:0 0 4px}
+.nl{flex:none;white-space:nowrap;font:700 17px "Barlow Condensed",Barlow,sans-serif;color:#7c4a2d;color:light-dark(#7c4a2d,#e7c4a6)}
+.nl.nx{margin-left:10px;color:var(--mut)}
+.nw{flex:none;display:flex;align-items:center;gap:6px;min-height:40px;padding:2px 14px 2px 6px;border-radius:20px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:500 14.5px Barlow,sans-serif;white-space:nowrap;cursor:pointer}
+.nw>svg:not(.pin-i){width:48px;height:32px;flex:none}
+.nw .pin-i{margin-left:6px;color:#9f1239}
+.nw.past{opacity:.6}
+.nw.hoy{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok);font-weight:600}
+.filt{display:flex;align-items:center;gap:8px;overflow-x:auto;scrollbar-width:none;padding:0 2px 8px}
+.fb{flex:none;white-space:nowrap;min-height:40px;padding:0 13px;border-radius:10px;border:1.5px dashed var(--line);background:transparent;color:var(--ink);font:500 14.5px Barlow,sans-serif;cursor:pointer}
+.fb::before{content:"+ ";color:var(--mut)}
+.fb[aria-pressed=true]{border-style:solid;border-color:var(--acc);background:light-dark(#fff1e3,#33210f);font-weight:600}
+.fb[aria-pressed=true]::before{content:"✓ ";color:var(--acc)}
+.fb.srt{margin-left:6px}.fb.srt::before{content:"↕ "}
+.fc{flex:none;margin-left:auto;padding-left:8px;color:var(--mut);font-size:14px;white-space:nowrap}
+.none{flex:1;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:18px;border:1.5px dashed var(--line);border-radius:14px}
+.none button{min-height:44px;padding:0 16px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer}
+.ihr{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}.ihr .ih{margin:0}
+.gm{display:inline-flex;align-items:center;min-height:32px;padding:2px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:light-dark(#155e75,#8fd3e6);font:600 13.5px Barlow,sans-serif;text-decoration:none;white-space:nowrap}
+.gm::after{content:"↗";margin-left:5px}
+.gm.big{min-height:44px;padding:0 14px;font-size:15px;border-radius:10px}
+.pas li .gm{margin-top:4px;display:inline-flex;width:max-content}
+.gt li .gm{margin-top:2px}
+
+.rl{flex:none;align-self:center;width:52px;font:700 13px Barlow,sans-serif;color:var(--mut)}
+.tabs{padding-bottom:8px}
+.filt{padding-bottom:12px}
+.now{background:linear-gradient(135deg,#0b3a53,#155e75);border-radius:16px;padding:10px 12px;margin:2px 0 12px;gap:8px;box-shadow:0 10px 24px -18px #0b3a53}
+.now .nl{color:#fff}.now .nl.nx{color:#bfe3ec}
+.now .nw{border-color:transparent;background:#fff;color:#17201f}
+.now .nw.past{opacity:.7}
+.now .nw.hoy{background:#fff1e3;border-color:var(--acc);box-shadow:none}
+.vc{font-weight:500;opacity:.75;margin-left:4px}
+.car{margin-bottom:10px}
+
+.tren{position:absolute;right:190px;bottom:13px;height:26px;width:auto;pointer-events:none;filter:drop-shadow(0 3px 3px #0004);animation:llega 2.8s cubic-bezier(.12,.8,.25,1) .5s both}
+@keyframes llega{from{transform:translateX(110vw)}to{transform:none}}
+@media(max-width:780px){.tren{right:16px;height:20px;bottom:14px}.hero{padding-bottom:46px}}
+@media(prefers-reduced-motion:reduce){.tren{animation:none}}
+
+.info:empty{display:none}
+.wl{margin:6px 0 0;color:var(--mut);font-size:15.5px}.wl b{color:var(--ink)}
+.wq{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 12px}
+.wq .k{flex-basis:100%}
+.wq button{display:flex;flex-direction:column;align-items:flex-start;min-height:48px;padding:6px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:600 15.5px Barlow,sans-serif;cursor:pointer}
+.wq small{font-weight:500;font-size:12.5px;color:var(--mut)}
+.cls{float:right;min-height:36px;padding:0 12px;border-radius:18px;border:1.5px solid var(--line);background:transparent;color:var(--mut);font:600 13.5px Barlow,sans-serif;cursor:pointer}
+
+.filt{background:light-dark(#dcd5c3,#26302e);border-radius:14px;padding:8px 12px;margin:2px 0 14px}
+.filt .rl{color:var(--ink)}
+.filt .fb{background:var(--card);border:1.5px solid transparent}
+.filt .fb[aria-pressed=true]{border-color:var(--acc);background:light-dark(#fff1e3,#33210f)}
+.filt .fc{color:light-dark(#4a5552,#b5c0bc);font-weight:600}
+.by{display:inline-block;font:italic 700 14px/1.2 Barlow,sans-serif;letter-spacing:0;color:#d5ecf2;margin-left:6px;white-space:nowrap;vertical-align:middle}
+.bcn{fill:var(--land2);stroke:var(--ink);opacity:.8;pointer-events:none}
+.bcn-t{font-family:Barlow,sans-serif;font-weight:700;font-style:italic;fill:var(--ink);opacity:.8;paint-order:stroke;stroke:var(--land2);stroke-linejoin:round;pointer-events:none}
+.ti{width:18px;height:20px;flex:none;margin:-2px -2px 0 -4px}
+.rst{position:absolute;right:10px;bottom:10px;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 15px Barlow,sans-serif;cursor:pointer;box-shadow:0 4px 12px -6px #0005}
+.rst:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.rl.rz{width:auto;min-width:52px;font:800 17px Barlow,sans-serif;color:var(--ink);margin-right:4px}
+@media(max-width:480px){.gdart{margin-bottom:14px}.gdh{grid-template-columns:minmax(0,1fr)}.gdart{width:100%}.gdart>svg{max-width:220px;margin:auto}}
+@media(prefers-reduced-motion:reduce){.gw{transition:none}}
+
+.gi{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 12px;align-items:start}
+.gart svg{width:120px;height:80px;display:block}
+.gi details,.gi>button{grid-column:1/-1}
+.gi summary{cursor:pointer;min-height:40px;display:flex;align-items:center;font-weight:600;color:light-dark(#7c4a2d,#e7c4a6);list-style:none}
+.gi summary::before{content:"▸";margin-right:6px;transition:transform .2s}.gi details[open] summary::before{transform:rotate(90deg)}
+.gi summary::-webkit-details-marker{display:none}
+.gi dl{margin:0 0 4px;display:grid;gap:2px}.gi dt{font-weight:700;font-size:14px;margin-top:6px}.gi dd{margin:0;font-size:15px}
+
+@media(max-width:780px){.wrap{grid-template-columns:minmax(0,1fr)}.mapcol,.panel,.wrap .below{grid-column:1;grid-row:auto}.map{position:relative;top:0;height:50vh;min-height:320px;max-height:460px}.info{padding:14px}.acts{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+@media(max-width:600px){.fbar{flex-direction:column;align-items:stretch}.tq{width:100%}
+ .hero{padding:10px 12px 30px;border-radius:16px;gap:8px}.hero h1{font-size:25px}.logo{width:38px;height:38px;border-radius:11px}.logo svg{width:28px}.sub{display:none}.sum span{font-size:13px;padding:3px 8px}.brand{gap:9px}
+ .help{width:36px!important;min-height:36px;height:36px;padding:0;justify-content:center;font-size:18px;position:absolute;right:10px;top:10px}.help .ht,.help .chev{display:none}.help .hq{display:inline}.brand{padding-right:40px}.rails{height:20px}.tren{height:16px!important;bottom:9px!important}}
+.lug{font:700 clamp(24px,5vw,30px)/1.1 "Barlow Condensed",Barlow,sans-serif;margin:6px 0 8px}
+.car+.fbar{margin-top:10px}
+.nowc{position:relative;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0b3a53,#155e75);border-radius:14px;padding:5px 8px;margin:2px 0 12px;box-shadow:0 10px 24px -18px #0b3a53}
+.nowc .now{background:none;box-shadow:none;margin:0;padding:2px 0;flex:1;min-width:0;gap:6px;cursor:grab;user-select:none;scroll-behavior:auto}
+.nowc .now.drag{cursor:grabbing}
+.nowc .nw{min-height:32px;font-size:14px;padding:1px 12px 1px 4px}
+.nowc .nw>svg:not(.pin-i){width:38px;height:26px}
+.nowc .nl{font-size:16px}
+.na{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:#ffffff26;color:#fff;font:700 20px/1 Barlow,sans-serif;cursor:pointer;display:grid;place-items:center}
+.na:hover{background:#ffffff40}
+@media(hover:none){.na{display:none}}
+.dsd{display:inline-block;font-size:.56em;white-space:nowrap;letter-spacing:.01em;color:#e8b54a}
+.hero .by{display:block;margin:4px 0 0}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#e8730c">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viajes Cat">
+</head>
+<body>
+<div class="band">
+<header class="hero">
+ <div class="brand">
+  <span class="logo" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="11" y="6" width="26" height="28" rx="7" fill="#fff"/><rect x="15" y="11" width="18" height="10" rx="2.5" fill="#0b3a53"/><circle cx="18" cy="27" r="2.4" fill="#e8730c"/><circle cx="30" cy="27" r="2.4" fill="#e8730c"/><path d="M17 34l-5 8M31 34l5 8M14 40h20" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span>
+  <div><h1>Viajes por Catalunya <span class="dsd">desde Badalona</span></h1><span class="by">por Javier Ovalle</span></div>
+ </div>
+ <button class="help" id="help" aria-expanded="false" aria-controls="howto" aria-label="Instrucciones"><span class="ht">Instrucciones</span><span class="hq" aria-hidden="true">?</span> <span class="chev" aria-hidden="true">▾</span></button>
+ <svg class="tren" viewBox="0 0 300 40" aria-hidden="true"><path d="M16 34H5Q0 34 2 27L9 11Q12 4 22 4H96V34Z" fill="#fff"/><path d="M11.5 12Q13.5 8 19 8H26V19H8.5Z" fill="#0b3a53"/><rect x="100" y="4" width="96" height="30" rx="3" fill="#fff"/><rect x="200" y="4" width="96" height="30" rx="3" fill="#fff"/><rect x="96" y="12" width="4" height="18" fill="#cfdde3"/><rect x="196" y="12" width="4" height="18" fill="#cfdde3"/><path d="M3.5 24H96V28H2.6Z" fill="#e8730c"/><rect x="100" y="24" width="96" height="4" fill="#e8730c"/><rect x="200" y="24" width="96" height="4" fill="#e8730c"/><rect x="34" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="52" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="70" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="88" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="108" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="126" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="144" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="162" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="180" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="208" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="226" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="244" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="262" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><rect x="280" y="10" width="12" height="9" rx="2" fill="#0b3a53"/><circle cx="6" cy="30.5" r="1.8" fill="#ffd166"/><circle cx="22" cy="36" r="3.4" fill="#082a3b"/><circle cx="40" cy="36" r="3.4" fill="#082a3b"/><circle cx="74" cy="36" r="3.4" fill="#082a3b"/><circle cx="90" cy="36" r="3.4" fill="#082a3b"/><circle cx="112" cy="36" r="3.4" fill="#082a3b"/><circle cx="128" cy="36" r="3.4" fill="#082a3b"/><circle cx="168" cy="36" r="3.4" fill="#082a3b"/><circle cx="184" cy="36" r="3.4" fill="#082a3b"/><circle cx="212" cy="36" r="3.4" fill="#082a3b"/><circle cx="228" cy="36" r="3.4" fill="#082a3b"/><circle cx="268" cy="36" r="3.4" fill="#082a3b"/><circle cx="284" cy="36" r="3.4" fill="#082a3b"/></svg>
+ <svg class="rails" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22H400M0 32H400" stroke="#ffffff" stroke-opacity=".35" stroke-width="2"/><g stroke="#ffffff" stroke-opacity=".25" stroke-width="3"><path d="M6 18v18"/><path d="M22 18v18"/><path d="M38 18v18"/><path d="M54 18v18"/><path d="M70 18v18"/><path d="M86 18v18"/><path d="M102 18v18"/><path d="M118 18v18"/><path d="M134 18v18"/><path d="M150 18v18"/><path d="M166 18v18"/><path d="M182 18v18"/><path d="M198 18v18"/><path d="M214 18v18"/><path d="M230 18v18"/><path d="M246 18v18"/><path d="M262 18v18"/><path d="M278 18v18"/><path d="M294 18v18"/><path d="M310 18v18"/><path d="M326 18v18"/><path d="M342 18v18"/><path d="M358 18v18"/><path d="M374 18v18"/><path d="M390 18v18"/></g></svg>
+</header>
+<div class="howto" id="howto"><div><ol>
+ <li><b>Elige una zona</b> en las pestañas: costa, interior, pueblos medievales o la ruta pastelera.</li>
+ <li><b>Desliza las tarjetas</b> y toca un pueblo: el mapa dibuja la ruta desde Badalona con un tren animado.</li>
+ <li><b>Mueve el mapa</b>: en el móvil, con dos dedos (con uno sigues bajando por la página); en el ordenador, arrastra y usa <b>Ctrl + rueda</b> para el zoom. El botón ⤢ vuelve a centrar la ruta.</li>
+ <li><b>Sigue los pasos</b>: qué tren coger, en qué dirección, dónde cambiar y qué tramos se pagan aparte.</li>
+ <li><b>Busca un pueblo</b> por su nombre o <b>usa los filtros</b> («Solo con el abono», «Menos de 1 h 30», «En el día») para decidir rápido, y mira la franja <b>«Este mes»</b> para ver dulces de temporada y fiestas.</li>
+ <li>El metro de Barcelona aparece como <b>incluido en tu T-usual</b>; todo lo demás indica si entra en el abono o se paga aparte.</li>
+ <li><b>Marca los pueblos visitados</b> para llevar la cuenta. Se guardan en tu teléfono.</li>
+ <li>Al final de la página tienes un <b>glosario pastelero</b> con buscador.</li>
+ <li>Los tiempos son aproximados: <b>revisa la hora de vuelta</b> antes de salir. Abajo del mapa tienes <b>«Qué cubre mi abono»</b>.</li>
+</ol></div></div>
+<div class="tabs edge" id="tabs"></div>
+<h2 class="lug">Lugares</h2>
+<div class="car"><div class="dest" id="dest"></div><button class="arr l" id="al" aria-label="Anteriores">‹</button><button class="arr r" id="ar" aria-label="Siguientes">›</button></div>
+<div class="fbar"><input type="search" class="tq" id="tq" placeholder="Buscar pueblo…" aria-label="Buscar un pueblo por su nombre"><div class="filt edge" id="filt"></div></div>
+<div class="nowc"><button class="na" id="nal" aria-label="Anteriores">‹</button><div class="now edge" id="now" aria-label="Este mes"></div><button class="na" id="nar" aria-label="Siguientes">›</button></div>
+<div class="wrap">
+ <div class="mapcol"><div class="map" id="mapbox">
+  <svg id="m" role="img" aria-label="Mapa ilustrado de Cataluña con las líneas de Rodalies y la ruta elegida"></svg>
+  <div class="zoom"><button id="zi" aria-label="Acercar">+</button><button id="zo" aria-label="Alejar">−</button><button id="zr" aria-label="Centrar el mapa" style="font-size:17px">⤢</button></div>
+  <div class="sum" id="sum"></div>
+  <div class="mhint" id="mhint" aria-hidden="true"></div>
+  <button class="rst" id="rst" aria-label="Volver al inicio: todos los destinos, sin filtros">↺ Volver</button>
+ </div></div>
+ <p class="note"><span class="ni" aria-hidden="true">i</span><span><b>Los tiempos son aproximados</b>, desde la estación de Badalona y sin contar esperas. La R3 está cortada entre Parets y La Garriga por obras (previstas hasta principios de 2027): hay bus de Renfe desde Fabra i Puig. Antes de salir, mira los horarios en la app Renfe Cercanías. El mapa es esquemático.</span></p>
+ <aside class="panel" id="p" aria-live="polite"></aside>
+ <div class="below">
+ <p class="note"><span class="ni" aria-hidden="true">i</span><span><b>Los tiempos son aproximados</b>, desde la estación de Badalona. Suman 5 minutos por transbordo, o 15 si el siguiente tren o bus pasa poco. La R3 está cortada entre Montcada Bifurcació y La Garriga por obras (previstas hasta enero de 2027): hay bus de Renfe desde Fabra i Puig a La Garriga y otro directo a Vic. Antes de salir, mira los horarios en la app Renfe Cercanías. El mapa es esquemático.</span></p>
+ <details class="abono" id="abono"><summary>Qué cubre mi abono</summary><div id="abonob"></div></details>
+ </div>
+</div>
+<section class="info" id="p2" aria-live="polite"></section>
+<section class="glos" id="glos" aria-labelledby="glt">
+ <h2 id="glt">Glosario pastelero</h2>
+ <p class="gls">Desliza las palabras y toca una para ver su ficha completa, con los pueblos y pastelerías donde verla o comprarla. La pronunciación es aproximada, escrita como se leería en castellano.</p>
+ <input type="search" id="gq" placeholder="Buscar: xuixo, coca, Navidad…" aria-label="Buscar en el glosario">
+ <div class="gcar" id="gl" role="list"></div>
+ <div class="gd" id="gd" aria-live="polite"></div>
+</section>
+<p class="foot">Última actualización: 16 de noviembre de 2026. Horarios y precios marcados como «comprobado» se revisaron en noviembre de 2026; el resto son orientativos.</p>
+</div>
+<script>
+{
+// ---------- data ----------
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+const ST={badalona:["Badalona",41.4497,2.2473],clot:["Clot-Aragó",41.4085,2.1878],arc:["Arc de Triomf",41.391,2.181],pcat:["Plaça de Catalunya",41.3869,2.170],sants:["Sants",41.3791,2.140],
+fip:["Fabra i Puig",41.4299,2.1835],svc:["Sant Vicenç de Calders",41.1866,1.5552],macanet:["Maçanet-Massanes",41.766,2.674],martorell:["Martorell",41.4766,1.9305],
+monistrol:["Monistrol de Montserrat",41.6113,1.8429],castell:["Castelldefels",41.28,1.977],
+mataro:["Mataró",41.536,2.444],caldes:["Caldes d'Estrac",41.569,2.527],arenys:["Arenys de Mar",41.578,2.551],canet:["Canet de Mar",41.588,2.583],santpol:["Sant Pol de Mar",41.600,2.624],calella:["Calella",41.613,2.661],pineda:["Pineda de Mar",41.6275,2.6895],igualada:["Igualada",41.5795,1.6177],blanes:["Blanes",41.686,2.775],
+garraf:["Garraf",41.249,1.901],sitges:["Sitges",41.2399,1.8065],vilanova:["Vilanova i la Geltrú",41.2215,1.7255],calafell:["Calafell",41.196,1.575],vendrell:["El Vendrell",41.219,1.535],
+sadurni:["Sant Sadurní d'Anoia",41.425,1.786],vilafranca:["Vilafranca del Penedès",41.345,1.6985],terrassa:["Terrassa",41.5605,2.009],manresa:["Manresa",41.728,1.827],
+granollers:["Granollers",41.5986,2.2903],hostalric:["Hostalric",41.744,2.630],garriga:["La Garriga",41.6815,2.2853],vic:["Vic",41.930,2.255],ripoll:["Ripoll",42.199,2.190],puigcerda:["Puigcerdà",42.431,1.928],
+montserrat:["Montserrat",41.5933,1.8375],girona:["Girona",41.9793,2.817],lloret:["Lloret de Mar",41.699,2.845],tossa:["Tossa de Mar",41.720,2.932],figueres:["Figueres",42.2655,2.961],cadaques:["Cadaqués",42.2886,3.2775],besalu:["Besalú",42.199,2.699],montblanc:["Montblanc",41.376,1.163],miravet:["Miravet",41.039,0.596],rupit:["Rupit",42.025,2.465],moralanova:["Móra la Nova",41.105,0.652],salou:["Salou – PortAventura",41.084,1.135],tarragona:["Tarragona",41.118,1.250],reus:["Reus",41.155,1.107],altafulla:["Altafulla",41.142,1.375],espluga:["L'Espluga de Francolí",41.398,1.101],poblet:["Monasterio de Poblet",41.381,1.083],lleida:["Lleida",41.621,0.632],tortosa:["Tortosa",40.8125,0.5216],ribes:["Ribes de Freser",42.3046,2.1682],nuria:["Vall de Núria",42.397,2.153],castellfollit:["Castellfollit de la Roca",42.220,2.551],olot:["Olot",42.181,2.490],banyoles:["Banyoles",42.117,2.766],cardona:["Cardona",41.914,1.679],santjoan:["Sant Joan de les Abadesses",42.234,2.285],llavaneres:["Sant Andreu de Llavaneres",41.556,2.487],arboc:["L'Arboç",41.2636,1.6015],centelles:["Centelles",41.7975,2.219],pals:["Pals y Peratallada",41.971,3.148],camprodon:["Camprodon",42.312,2.365],solsona:["Solsona",41.994,1.517],llivia:["Llívia",42.464,1.981],nord:["Estació del Nord (bus)",41.394,2.181],gv:["Gran Via, 658 (bus)",41.3905,2.1715]};
+const w=(a,b)=>[null,a,b];
+const LN={
+ R1:{c:"#5aa9e0",d:0,n:"R1",ks:["sants","pcat","arc","clot",w(41.43,2.215),"badalona",w(41.47,2.28),w(41.49,2.33),w(41.515,2.39),"mataro","llavaneres","caldes","arenys","canet","santpol","calella","pineda",w(41.645,2.73),"blanes",w(41.703,2.719),"macanet"]},
+ R2S:{c:"#3a9a3a",d:0,n:"R2 Sud",ks:["sants",w(41.36,2.11),w(41.32,2.04),"castell","garraf","sitges","vilanova","calafell","svc"]},
+ R2N:{c:"#3a9a3a",d:0,n:"R2 Nord",ks:["clot",w(41.44,2.20),w(41.52,2.22),"granollers",w(41.66,2.40),w(41.70,2.50),"hostalric","macanet"]},
+ R4:{c:"#f2b300",d:1,n:"R4",ks:["svc","vendrell","arboc","vilafranca","sadurni",w(41.45,1.86),"martorell",w(41.41,2.02),w(41.38,2.06),w(41.36,2.10),"sants","pcat","arc",w(41.42,2.192),w(41.45,2.19),w(41.48,2.17),w(41.50,2.14),w(41.546,2.108),"terrassa",w(41.585,1.95),w(41.637,1.86),w(41.69,1.845),"manresa"]},
+ R3:{c:"#d9302b",d:0,n:"R3",ks:["garriga","centelles",w(41.86,2.255),"vic",w(42.0,2.27),w(42.09,2.235),"ripoll","ribes",w(42.32,2.09),w(42.38,2.00),"puigcerda"]},
+ BUS3:{c:"#d9302b",d:0,n:"Bus R3",bus:1,ks:["fip",w(41.47,2.20),w(41.54,2.23),w(41.62,2.27),"garriga"]},
+ BUSV:{c:"#d9302b",d:0,n:"Bus directo R3",bus:1,ks:["fip",w(41.47,2.20),w(41.54,2.23),w(41.62,2.27),w(41.70,2.29),w(41.80,2.25),"vic"]},
+ L1:{c:"#e2231a",d:0,n:"L1",ks:["clot",w(41.42,2.186),"fip"]},
+ FGC:{c:"var(--reg)",d:0,n:"FGC R5",ks:["martorell",w(41.52,1.90),w(41.57,1.86),"monistrol"]},
+ CRE:{c:"var(--reg)",d:0,n:"Cremallera",ks:["monistrol",w(41.603,1.832),"montserrat"]},
+ REG:{c:"var(--reg)",d:0,n:"R11 / RG1",ks:["macanet",w(41.82,2.73),w(41.88,2.77),"girona",w(42.08,2.85),w(42.18,2.92),"figueres"]},
+ R13:{c:"var(--reg)",d:0,n:"R13 / R14",ks:["svc",w(41.20,1.48),w(41.25,1.33),w(41.286,1.249),w(41.33,1.21),"montblanc","espluga",w(41.48,0.95),w(41.56,0.80),"lleida"]},
+ R15:{c:"var(--reg)",d:0,n:"R15",ks:["svc",w(41.15,1.42),"altafulla","tarragona","reus",w(41.17,0.95),w(41.15,0.78),"moralanova"]},
+ TAXI:{c:"var(--reg)",d:0,n:"Taxi",bus:1,ks:["moralanova",w(41.07,0.62),"miravet"]},
+ TEI:{c:"var(--reg)",d:0,n:"Bus TEISA",bus:1,ks:["girona",w(42.06,2.76),w(42.13,2.72),"besalu","castellfollit","olot"]},
+ SAG:{c:"var(--reg)",d:0,n:"Bus Sagalés",bus:1,ks:["vic",w(41.97,2.33),w(42.01,2.41),"rupit"]},
+ REGT:{c:"var(--reg)",d:0,n:"RT2",ks:["svc",w(41.15,1.42),"altafulla","tarragona","salou"]},
+ R16:{c:"var(--reg)",d:0,n:"R16",ks:["svc",w(41.15,1.42),"altafulla","tarragona",w(41.10,1.10),w(41.03,0.95),w(40.94,0.80),w(40.84,0.62),"tortosa"]},
+ CRN:{c:"var(--reg)",d:0,n:"Cremallera de Núria",ks:["ribes",w(42.35,2.16),"nuria"]},
+ BAN:{c:"var(--reg)",d:0,n:"Bus TEISA",bus:1,ks:["girona",w(42.06,2.79),"banyoles"]},
+ ALSA:{c:"var(--reg)",d:0,n:"Bus ALSA",bus:1,ks:["manresa",w(41.82,1.75),"cardona"]},
+ RIP:{c:"var(--reg)",d:0,n:"Bus TEISA",bus:1,ks:["ripoll","santjoan"]},
+ WALKP:{c:"#15803d",d:0,n:"A pie",bus:1,ks:["espluga","poblet"]},
+ IGF:{c:"var(--reg)",d:0,n:"FGC R6",ks:["martorell",w(41.50,1.86),w(41.53,1.76),w(41.56,1.68),"igualada"]},
+ BUSF:{c:"var(--reg)",d:0,n:"Bus Sarfa",bus:1,ks:["figueres",w(42.27,3.08),w(42.30,3.17),w(42.29,3.24),"cadaques"]},
+ BUSC:{c:"var(--reg)",d:0,n:"Bus Pujol",bus:1,ks:["blanes","lloret","tossa"]},
+ R17:{c:"var(--reg)",d:0,n:"R17",ks:["sants",w(41.36,2.11),w(41.32,2.04),"castell","garraf","sitges","vilanova","calafell","svc",w(41.15,1.42),"altafulla","tarragona","salou"]},
+ R11:{c:"var(--reg)",d:0,n:"R11",ks:["clot",w(41.44,2.20),w(41.52,2.22),"granollers",w(41.66,2.40),w(41.70,2.50),"hostalric","macanet",w(41.82,2.73),w(41.88,2.77),"girona",w(42.08,2.85),w(42.18,2.92),"figueres"]},
+ BUSB:{c:"var(--reg)",d:0,n:"Bus TEISA",bus:1,ks:["gv",w(41.60,2.36),w(41.85,2.62),w(42.05,2.74),"besalu"]},
+ BUSCAM:{c:"var(--reg)",d:0,n:"Bus TEISA",bus:1,ks:["gv",w(41.62,2.27),w(41.93,2.27),w(42.20,2.20),w(42.25,2.30),"camprodon"]},
+ BUSP:{c:"var(--reg)",d:0,n:"Bus Sarfa",bus:1,ks:["nord",w(41.55,2.45),w(41.70,2.72),w(41.86,2.95),"pals"]},
+ BUSSOL:{c:"var(--reg)",d:0,n:"Bus ALSA",bus:1,ks:["nord",w(41.52,1.95),w(41.73,1.83),w(41.90,1.68),"solsona"]},
+ LLV:{c:"var(--reg)",d:0,n:"Bus ALSA",bus:1,ks:["puigcerda","llivia"]},
+ WK1:{c:"#15803d",d:0,n:"A pie",bus:1,ks:["pcat","gv"]},
+ WK2:{c:"#15803d",d:0,n:"A pie",bus:1,ks:["arc","nord"]}
+};
+const TH={mataro:"city",caldes:"beach",arenys:"beach",canet:"castle",santpol:"beach",calella:"light",igualada:"city",pineda:"beach",blanes:"beach",garraf:"beach",sitges:"church",vilanova:"train",calafell:"castle",vendrell:"music",sadurni:"wine",vilafranca:"wine",martorell:"bridge",terrassa:"city",manresa:"church",granollers:"market",hostalric:"castle",garriga:"city",vic:"market",ripoll:"church",puigcerda:"mount",montserrat:"mount",girona:"river",lloret:"beach",tossa:"castle",figueres:"city",cadaques:"church",salou:"beach",tarragona:"city",reus:"city",altafulla:"castle",poblet:"church",lleida:"church",tortosa:"castle",nuria:"mount",olot:"mount",castellfollit:"castle",banyoles:"beach",cardona:"castle",santjoan:"church",besalu:"bridge",montblanc:"castle",miravet:"castle",rupit:"bridge",llavaneres:"beach",arboc:"church",centelles:"castle",pals:"castle",camprodon:"bridge",solsona:"church",llivia:"mount"};
+const MED=new Set(["tarragona","altafulla","poblet","tortosa","cardona","santjoan","castellfollit","girona","besalu","cadaques","tossa","montblanc","miravet","rupit","hostalric","vic","ripoll","santpol","pals","camprodon","solsona","llivia"]);
+const CMB={igualada:"Martorell y su Pont del Diable, donde haces el cambio de tren.",pineda:"Calella, a una parada (o andando por la playa), o Sant Pol de Mar.",tarragona:"Altafulla o Salou, en la misma línea.",altafulla:"Tarragona, a 10 minutos en tren.",reus:"Tarragona, en la misma línea.",poblet:"Montblanc, en la misma línea (o a pie por la Ruta del Císter, ≈14 km).",olot:"Castellfollit de la Roca y Besalú, en el mismo bus.",castellfollit:"Besalú y Olot, en el mismo bus.",banyoles:"Girona, a 25 minutos en bus.",cardona:"Manresa, donde haces el transbordo.",santjoan:"Ripoll, a 15 minutos.",nuria:"Ripoll, en la misma línea R3.",salou:"Si vas al parque: Renfe vende un billete combinado con el tren de ida y vuelta desde cualquier estación de Cataluña y la entrada, al mismo precio que la entrada de un día. El parque cierra parte del invierno: mira su calendario.",girona:"Besalú: el bus TEISA sale de la estación de autobuses de Girona.",besalu:"Castellfollit de la Roca y Olot, siguiendo en el mismo bus TEISA.",llavaneres:"Mataró, una parada antes, o Caldes d'Estrac, la siguiente.",arboc:"Vilafranca del Penedès, a dos paradas en la R4.",centelles:"Vic, a dos paradas en la misma R3.",pals:"Peratallada está a unos 7 km: solo hay bus los laborables (o transporte a demanda que se reserva antes); si no, taxi.",camprodon:"Sant Joan de les Abadesses y Ripoll, en el bus TEISA de Ripoll.",llivia:"Puigcerdà y su lago, a unos 15 minutos en bus.",cadaques:"Figueres y el Museo Dalí; mejor con una noche.",tossa:"Lloret, a pie por el camino de ronda.",montblanc:"El monasterio de Poblet (Patrimonio de la Humanidad), a unos 8 km en taxi o bus.",miravet:"Pide al taxi que te deje en el «pas de barca»; mejor dormir allí, hay muy pocos trenes.",rupit:"Vic y su mercado; con tan pocos buses, mejor dormir una noche.",vic:"Rupit, en bus desde Vic.",hostalric:"Girona o Maçanet, en la misma línea.",ripoll:"Vic, en la misma línea R3.",santpol:"Calella, a 5 minutos en tren."};
+const Z={med:["Medievales y con encanto","#b45309"],pas:["Ruta pastelera","#7c4a2d"],n:["Costa norte","#0e7490"],s:["Costa sur","#2563eb"],i:["Interior","#4d7c0f"],x:["Billete extra","#9f1239"]};
+const PLAN={poblet:"largo",lleida:"noche",tortosa:"largo",nuria:"largo",olot:"largo",castellfollit:"largo",cardona:"largo",santjoan:"largo",cadaques:"noche",miravet:"noche",rupit:"noche",puigcerda:"noche",besalu:"largo",montblanc:"largo",ripoll:"largo",pals:"largo",camprodon:"largo",solsona:"largo",llivia:"noche"};
+const PL={dia:["En el día","var(--pl-dia)"],largo:["Día largo","var(--pl-largo)"],noche:["Mejor con noche","var(--pl-noche)"]};
+const SLEEP={llivia:{t:"Hay hoteles y casas rurales en Llívia, pero Puigcerdà tiene más oferta y está junto al tren: puedes dormir allí y hacer Llívia en bus.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},lleida:{t:"Si vas en regional, mejor dormir allí. Hay albergue Xanascat en Lleida y oferta de hoteles en el centro.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+nuria:{t:"Se puede hacer en el día saliendo muy temprano. Si te quedas, hay albergue Xanascat en Núria y hotel en el propio valle.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+poblet:{t:"Se puede hacer en el día. Si te quedas, el monasterio tiene hospedería y hay albergue Xanascat en L'Espluga de Francolí.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+olot:{t:"Se puede hacer en el día. Si te quedas, hay albergue Xanascat en Olot: buena base para Castellfollit y Besalú.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+cadaques:{t:"Hay hoteles y apartamentos en el pueblo, pero son caros. Más económico: dormir en Figueres (más oferta y al lado del tren) o en el albergue Xanascat de Girona, y hacer Cadaqués en bus por la mañana.",l:[["Turismo de Cadaqués (oficial)","https://www.visitcadaques.org/"],["Dónde dormir en Cadaqués (Fem Turisme)","https://femturisme.cat/es/pueblos/cadaques/donde-dormir"],["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+miravet:{t:"En el pueblo hay poca oferta. Móra d'Ebre, a unos 6 km, tiene más hostales y hoteles. Reserva también el taxi de ida y vuelta.",l:[["Miravet en Fem Turisme (qué hacer y dónde dormir cerca)","https://femturisme.cat/es/pueblos/MIRAVET"]]},
+rupit:{t:"Hay hostales y casas rurales en el pueblo y alrededores. Alternativa económica: el albergue Xanascat de Vic, y subir a Rupit con el bus de la mañana.",l:[["Ayuntamiento de Rupit i Pruit: turismo y dónde dormir","https://www.rupitpruit.cat/"],["Dónde dormir en Rupit (Fem Turisme)","https://femturisme.cat/es/pueblos/rupit-i-pruit/donde-dormir"],["Casas rurales en Rupit (Escapada Rural)","https://www.escapadarural.com/casas-rurales/rupit-i-pruit"],["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+puigcerda:{t:"Buena oferta de hoteles y apartamentos. En temporada de esquí (diciembre a marzo) los precios suben: reserva con antelación.",l:[["Turismo de Puigcerdà (oficial)","https://www.puigcerdaturisme.cat/"],["Turisme Cerdanya (oficial)","https://www.cerdanya.org/"],["Dónde dormir en Puigcerdà (Fem Turisme)","https://femturisme.cat/pobles/puigcerda/on-dormir"]]},
+besalu:{t:"Se puede hacer en el día saliendo temprano. Si prefieres quedarte, los albergues Xanascat de Olot y Girona están en la misma línea de bus.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+montblanc:{t:"Se puede hacer en el día si cuadras bien los pocos trenes. Si te quedas, el albergue Xanascat de L'Espluga de Francolí está al lado del monasterio de Poblet.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]},
+ripoll:{t:"Se puede hacer en el día. Si te quedas, Vic tiene albergue Xanascat y está en la misma línea.",l:[["Albergues Xanascat (red oficial, económicos)","https://xanascat.gencat.cat/"]]}};
+
+const WALK={igualada:"Estación de FGC → Rambla y centro → basílica de Santa Maria → barrio del Rec y Museo de la Piel (≈3 km).",pineda:"Estación → paseo marítimo y playa → subida a la iglesia de Santa Maria en el centro (≈2 km). Si te apetece seguir, por la playa llegas andando a Calella (≈2 km).",tarragona:"Estación → Balcó del Mediterrani → anfiteatro → Part Alta y catedral → paseo de la muralla (≈4 km, con subida).",
+altafulla:"Estación → Vila Closa y castillo (≈1 km) → playa y casas de pescadores → castillo de Tamarit por la costa (≈5 km en total).",
+reus:"Estación → Ruta del Modernismo por el centro → Casa Navàs y plaza del Mercadal → Gaudí Centre (≈3 km).",
+poblet:"Estación de L'Espluga → camino señalizado hasta el monasterio (≈4 km, una hora). Se puede seguir la Ruta del Císter hasta Montblanc.",
+lleida:"Estación → Eje Comercial → subida a la Seu Vella (hay ascensor) → vistas desde el campanario (≈4 km).",
+tortosa:"Estación → catedral → subida al castillo de la Suda → Reials Col·legis → jardines del Príncipe (≈4 km).",
+nuria:"Paseo por el lago y el santuario; si estás en forma, baja a pie por el Camí Vell hasta Queralbs (≈2 h de bajada) y coge allí el cremallera.",
+olot:"Estación de autobuses → centro histórico → subida al volcán Montsacopa (≈4 km). Si tienes tiempo: volcán de Santa Margarida y hayedo de la Fageda d'en Jordà.",
+castellfollit:"Parada del bus → calle mayor → mirador junto a la iglesia vieja; baja al río para ver el acantilado desde abajo (≈2 km).",
+banyoles:"Parada del bus → plaza porticada → monasterio de Sant Esteve → vuelta completa al lago (≈7 km llanos).",
+cardona:"Parada del bus → centro → subida al castillo y la colegiata (≈2 km, cuesta fuerte). La Montaña de Sal está a unos 2 km del centro.",
+santjoan:"Parada del bus → monasterio → puente medieval → paseo junto al Ter (≈2 km).",salou:"Estación → PortAventura Park y Ferrari Land, a pie. Si prefieres playa: bajada al centro de Salou y al paseo marítimo (≈2–3 km).",mataro:"Estación → paseo marítimo y puerto → La Riera → basílica de Santa Maria → Nau Gaudí (≈3 km).",
+caldes:"Estación → paseo marítimo → centro termal y Fundació Palau (≈1,5 km).",
+arenys:"Estación → subir por la Riera → cementerio de Sinera, con vistas al mar (≈3 km ida y vuelta, con cuesta).",
+canet:"Estación → centro modernista y casa-museo Domènech i Montaner → hasta el castillo de Santa Florentina (≈3 km).",
+santpol:"Estación → playa → subida a la ermita de Sant Pau → casco antiguo (≈2 km).",
+calella:"Estación → paseo de plátanos → subida al faro y a les Torretes (≈3 km, con cuesta).",
+blanes:"Estación → centro (bus urbano o 25 min a pie) → paseo marítimo → Sa Palomera → subida al Jardí Marimurtra (≈5 km).",
+garraf:"Estación → casetas de baño y cala → puerto (≈1 km). Es corto: combínalo con Sitges.",
+sitges:"Estación → calle Major → iglesia sobre el mar → Cau Ferrat y Maricel → paseo marítimo (≈3 km).",
+vilanova:"Museo del Ferrocarril (junto a la estación) → rambla → playa del Far (≈3 km).",
+calafell:"Estación → playa y barrio marinero → Casa Barral → por la costa hasta la Ciutadella Ibèrica (≈4 km).",
+vendrell:"Estación → centro y Fundació Apel·les Fenosa; el Museu Pau Casals está en la playa de Sant Salvador (≈3 km, o en bus).",
+sadurni:"Freixenet, junto a la estación → centro → bodegas de Codorníu (≈2 km).",
+vilafranca:"Estación → rambla → basílica de Santa Maria → Vinseum (≈2 km).",
+martorell:"Estación → casco antiguo → Pont del Diable (≈2 km).",
+terrassa:"Estación → centro → Masia Freixa → Seu d'Ègara (≈4 km).",
+manresa:"Estación → puente viejo → subida a la Seu → Cova de Sant Ignasi (≈4 km, con cuestas).",
+granollers:"Estación de Granollers Centre → plaza de la Porxada y casco antiguo (≈1 km).",
+hostalric:"Estación → subida al pueblo → paseo por la muralla → castillo (≈3 km, con cuesta).",
+garriga:"Estación → Illa Raspall y casas modernistas → zona termal (≈2 km).",
+vic:"Estación → Plaça Major → catedral y templo romano → Museu Episcopal (≈2 km).",
+ripoll:"Estación → monasterio de Santa Maria y su portada románica (≈1 km).",
+puigcerda:"Estación → subida al centro (hay ascensor) → campanario → lago (≈3 km).",
+montserrat:"Desde el monasterio: camino de la Santa Cova (≈3 km ida y vuelta) o funicular de Sant Joan y caminata por la cima.",
+girona:"Estación → puente de Eiffel sobre el Onyar → catedral → barrio judío (el Call) → paseo de la muralla (≈5 km).",
+lloret:"Paseo marítimo → jardines de Santa Clotilde (≈2 km). Si vas con energía: camino de ronda hasta Tossa (≈12 km, exigente).",
+tossa:"Parada del bus → playa → Vila Vella y faro (≈2 km).",
+figueres:"Estación → Rambla → Teatre-Museu Dalí → castillo de Sant Ferran (≈4 km).",
+cadaques:"Parada del bus → paseo de la bahía → iglesia de Santa Maria → a pie hasta Portlligat (≈4 km en total).",
+besalu:"Parada del bus → puente románico → barrio judío y miqvé → plaza porticada (≈2 km).",
+montblanc:"Estación → portal de Bové → vuelta por las murallas → iglesia de Santa Maria (≈3 km).",
+miravet:"Junto al río → «pas de barca» → subida al castillo (≈3 km, cuesta fuerte).",
+rupit:"Parada del bus → puente colgante → calle del Fossar → iglesia. El Salt de Sallent queda a ≈1 h a pie por sendero."};
+const TASTE={camprodon:"Galetes Birba, las galletas de mantequilla de Camprodon.",llavaneres:"Los guisantes (pèsols) de Llavaneres en primavera y la coca de Llavaneres.",pals:"Arroz de Pals, de los arrozales de la llanura del Ter.",reus:"Vermut: Reus fue una de las capitales del vermut, y muchos bares lo sirven a la hora del aperitivo.",tarragona:"Romesco, la salsa de almendras y ñoras típica del Camp de Tarragona.",lleida:"Caracoles a la llauna.",olot:"Flaona y la «cocina volcánica» de la Garrotxa.",girona:"Xuixos: masa frita rellena de crema y rebozada en azúcar, el dulce más famoso de Girona.",
+montblanc:"Merlets, un dulce de almendra con forma de almena de muralla, inventado en la pastelería Andreu (calle Mayor, desde 1841). También montblanquins y carquinyolis.",
+vilafranca:"Catànies: almendra marcona tostada y caramelizada, cubierta de pasta de almendra y avellana y de cacao, creación de la familia Cudié. También las cocas de Vilafranca.",
+besalu:"Flaona: media luna de masa de bollo rellena de crema, un dulce tradicional de la Garrotxa que las pastelerías de la zona están recuperando.",
+sadurni:"Cava, claro: muchas bodegas ofrecen visita con cata.",
+sitges:"Malvasía de Sitges, un vino dulce local, y el xató.",
+vilanova:"Xató: escarola con bacalao, anchoas y salsa de almendras y ñoras.",
+montserrat:"Mató amb mel (requesón con miel) en los puestos de la entrada al monasterio.",
+vic:"Fuet y llonganissa de Vic, en cualquier charcutería del centro.",
+tossa:"Cim i tomba, un guiso marinero de pescado y patata típico del pueblo.",
+figueres:"Bunyols de l'Empordà en Semana Santa.",cadaques:"Bunyols de l'Empordà en Semana Santa."};
+const FEST={igualada:"European Balloon Festival, con globos aerostáticos, en julio. Rec.0, un festival de moda y tiendas en las fábricas del barrio del Rec, varias veces al año.",tarragona:"Tarraco Viva (mayo) y Santa Tecla (septiembre), con castells.",reus:"Fiesta mayor de Sant Pere, a finales de junio.",lleida:"Aplec del Caragol, en mayo.",tortosa:"Festa del Renaixement, en julio.",olot:"Fira de Sant Lluc, en octubre.",vic:"Mercado los sábados y martes en la Plaça Major. Mercat Medieval (5–8 de diciembre de 2026), Mercat del Ram (Domingo de Ramos) y Mercat de Música Viva (septiembre).",solsona:"Carnaval de Solsona, uno de los más populares de Cataluña.",
+granollers:"Mercado semanal los jueves, de los más grandes de Cataluña.",
+montblanc:"Setmana Medieval alrededor del 23 de abril (Sant Jordi).",
+cadaques:"Mercado los lunes.",
+sitges:"Carnaval (febrero) y Festival de Cine Fantástico (octubre).",
+vilafranca:"Fiesta Mayor alrededor del 30 de agosto, con castells.",
+girona:"Temps de Flors en mayo: patios y monumentos decorados con flores.",
+besalu:"Feria medieval a principios de septiembre.",
+rupit:"Pesebre viviente en Navidad; fiesta mayor el 29 de septiembre.",
+puigcerda:"Fiesta del Lago en verano.",
+blanes:"Concurso internacional de fuegos artificiales a finales de julio.",
+mataro:"Les Santes, la fiesta mayor, a finales de julio.",
+sadurni:"Cavatast, feria del cava, en octubre."};
+
+const PAST={tarragona:[["Pastisseria Cal Jan","Fava d'Or 2026, la distinción a la mejor pastelería de su zona (tiene tiendas en Tarragona y Torredembarra)."]],
+reus:[["Confiteria Padreny","Reconocida entre las mejores pastelerías de Cataluña."]],
+lleida:[["Pastisseria Tugues","Ha recibido la Fava d'Or de Ponent."],["Pastisseria Carme","Entre las 50 mejores pastelerías de Cataluña."]],
+olot:[["Cacau Pastisseria","Hace flaones cada viernes y está recuperando este dulce tradicional de la Garrotxa."]],
+banyoles:[["Ruta «Banyoles Dolça»","Un recorrido por las pastelerías y los hornos de la ciudad, organizado por el Ayuntamiento."]],girona:[["Pastisseria Tornés","C/ de l'Argenteria, 7. Ganó el Concurso Mundial del Xuixo de 2026 y la Fava d'Or 2026 de Girona: es la pastelería de referencia de los xuixos."],["Rocambolesc","Heladería y confitería de Jordi Roca (El Celler de Can Roca) en el Barri Vell: postres creativos de alta cocina."]],
+vilafranca:[["Bombons Cudié","Los creadores de las catànies. Se puede visitar el obrador."],["Pastisseria Trens","Pastelería histórica donde empezó a trabajar el creador de las catànies."]],
+vic:[["Pastisseria El Carme","Fava d'Or 2025 de la Cataluña Central."],["Pastissos d'El Bruguer","C/ Jaume I el Conqueridor, 3. Famosa por su bollería: prueba el croissant de albaricoque."]],
+manresa:[["Pastisseria El Cigne","Fava d'Or 2026 de la Cataluña Central."]],
+montblanc:[["Pastisseria Andreu","En la calle Mayor desde 1841, con cinco generaciones de pasteleros. Inventaron los merlets."],["Pastisseria Viñas","Pastelería familiar de Montblanc, conocida por sus creaciones originales."]],
+figueres:[["Opera","Pastelería artesana en el centro de Figueres (tiene otra tienda en el castillo de Peralada)."]],
+puigcerda:[["Pastisseria Cosp","Fundada en 1806; se dice que es uno de los comercios más antiguos de Cataluña. Prueba sus «margaritas», magdalenas de almendra."],["Pastisseria Gil","Sucursal de la casa de Llívia, Fava d'Or 2026 del Pirineo."]],
+igualada:[["Pastisseria Targarona","Fava d'Or 2026, la distinción a la mejor pastelería de su zona."]],
+llivia:[["Pastisseria Gil","La casa madre, Fava d'Or 2026 del Pirineo."]]};
+const PASSET=new Set([...Object.keys(PAST),"besalu","montserrat"]);
+
+const ART={
+xuixo:'<ellipse cx="60" cy="64" rx="46" ry="6" fill="#0001"/><rect x="18" y="30" width="84" height="30" rx="15" fill="#c98a3b"/><rect x="18" y="30" width="84" height="12" rx="6" fill="#e0a85a"/><ellipse cx="100" cy="45" rx="7" ry="13" fill="#f6dc8a"/><ellipse cx="100" cy="45" rx="4" ry="8" fill="#f2c94c"/><g fill="#fff">'+[...Array(26)].map((_,i)=>`<circle cx="${24+(i*7)%74}" cy="${33+(i*11)%24}" r="1.4"/>`).join("")+'</g>',
+catanies:'<ellipse cx="60" cy="66" rx="44" ry="5" fill="#0001"/><g><circle cx="40" cy="48" r="15" fill="#6b4226"/><circle cx="62" cy="40" r="15" fill="#7a4b2c"/><circle cx="82" cy="50" r="15" fill="#6b4226"/></g><g fill="#a0704a" opacity=".6"><circle cx="35" cy="42" r="3"/><circle cx="57" cy="34" r="3"/><circle cx="77" cy="44" r="3"/></g>',
+merlets:'<ellipse cx="60" cy="68" rx="44" ry="5" fill="#0001"/><path d="M24 64V36h10v-8h10v8h10v-8h10v8h10v-8h10v8h10v28z" fill="#e3b46a"/><path d="M24 50h72" stroke="#c8913f" stroke-width="2"/><g fill="#fff5dc"><ellipse cx="38" cy="57" rx="4" ry="2.5"/><ellipse cx="60" cy="57" rx="4" ry="2.5"/><ellipse cx="82" cy="57" rx="4" ry="2.5"/></g>',
+montblanquins:'<ellipse cx="60" cy="66" rx="44" ry="5" fill="#0001"/><g fill="#e2b06a"><ellipse cx="38" cy="50" rx="16" ry="11"/><ellipse cx="80" cy="48" rx="16" ry="11"/></g><g fill="#fff3d6"><ellipse cx="38" cy="47" rx="6" ry="3.5"/><ellipse cx="80" cy="45" rx="6" ry="3.5"/></g>',
+carquinyolis:'<ellipse cx="60" cy="66" rx="46" ry="5" fill="#0001"/>'+[24,50,76].map(x=>`<g transform="rotate(-8 ${x+10} 46)"><rect x="${x}" y="32" width="22" height="30" rx="4" fill="#e7c08a"/><ellipse cx="${x+7}" cy="42" rx="4" ry="2.6" fill="#f8ecd2" stroke="#b07a3c"/><ellipse cx="${x+15}" cy="53" rx="4" ry="2.6" fill="#f8ecd2" stroke="#b07a3c"/></g>`).join(""),
+flaona:'<ellipse cx="60" cy="66" rx="44" ry="5" fill="#0001"/><path d="M18 60a42 34 0 0 1 84 0z" fill="#d79a48"/><path d="M18 60h84" stroke="#b77a32" stroke-width="3" stroke-dasharray="4 4"/><path d="M34 46q26-18 52 0" stroke="#efc27a" stroke-width="4" fill="none"/>',
+tapons:'<ellipse cx="60" cy="68" rx="40" ry="5" fill="#0001"/>'+[36,62,86].map((x,i)=>`<g><rect x="${x-11}" y="${30+i%2*4}" width="22" height="32" rx="9" fill="#d18f3f"/><ellipse cx="${x}" cy="${32+i%2*4}" rx="11" ry="5" fill="#f0b763"/></g>`).join(""),
+margaritas:'<ellipse cx="60" cy="66" rx="40" ry="5" fill="#0001"/><path d="M30 60l6-24h48l6 24z" fill="#fff" stroke="#e5d6b8"/><path d="M28 38q32-26 64 0z" fill="#e6b15f"/><path d="M28 38h64" stroke="#b9802f" stroke-width="3"/><g fill="#f6e3b8"><ellipse cx="50" cy="30" rx="4" ry="2"/><ellipse cx="66" cy="28" rx="4" ry="2"/></g>',
+panellets:'<ellipse cx="60" cy="66" rx="44" ry="5" fill="#0001"/>'+[[38,48],[62,40],[84,50]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="14" fill="#e9c78f"/><g fill="#f7ead2" stroke="#d8b27a" stroke-width=".6">${[...Array(9)].map((_,i)=>`<ellipse cx="${x-9+(i%3)*9}" cy="${y-8+Math.floor(i/3)*8}" rx="3.2" ry="1.6" transform="rotate(${i*40} ${x-9+(i%3)*9} ${y-8+Math.floor(i/3)*8})"/>`).join("")}</g>`).join(""),
+neules:'<ellipse cx="60" cy="66" rx="46" ry="5" fill="#0001"/>'+[30,46].map(y=>`<rect x="16" y="${y}" width="88" height="13" rx="6.5" fill="#f1d7a4"/><path d="M24 ${y+2}l8 9M40 ${y+2}l8 9M56 ${y+2}l8 9M72 ${y+2}l8 9M88 ${y+2}l8 9" stroke="#d9b273" stroke-width="2"/><ellipse cx="104" cy="${y+6.5}" rx="3" ry="6" fill="#e0b97a"/>`).join(""),
+torro:'<ellipse cx="60" cy="66" rx="46" ry="5" fill="#0001"/><rect x="16" y="34" width="88" height="28" rx="3" fill="#fff8e8" stroke="#eadcbf"/><rect x="16" y="34" width="88" height="5" fill="#f3eadb"/><g fill="#c48a4a">'+[[26,48],[40,54],[54,46],[68,55],[82,47],[94,54],[32,58],[76,58]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="5" ry="3"/>`).join("")+'</g>',
+tortell:'<ellipse cx="60" cy="68" rx="48" ry="6" fill="#0001"/><ellipse cx="60" cy="50" rx="46" ry="18" fill="#d99a4a"/><ellipse cx="60" cy="48" rx="20" ry="7" fill="#fbfaf6"/><g>'+[[24,46,"#e63946"],[38,38,"#2a9d8f"],[60,34,"#f4a261"],[82,38,"#e63946"],[96,46,"#2a9d8f"],[40,60,"#f4a261"],[80,60,"#e63946"]].map(([x,y,c])=>`<rect x="${x-4}" y="${y-2.5}" width="8" height="5" rx="1.5" fill="${c}"/>`).join("")+'</g><path d="M50 30l3-10 7 6 7-6 3 10z" fill="#f2c94c" stroke="#c99a1b"/>',
+coca:'<ellipse cx="60" cy="68" rx="50" ry="5" fill="#0001"/><ellipse cx="60" cy="48" rx="52" ry="18" fill="#e3ac5c"/><path d="M14 46q46-10 92 0" stroke="#f6e1b0" stroke-width="5" fill="none"/>'+[[30,44,"#e63946"],[52,40,"#2a9d8f"],[74,42,"#f4a261"],[92,48,"#e63946"],[40,54,"#2a9d8f"],[64,55,"#e63946"]].map(([x,y,c])=>`<rect x="${x-4}" y="${y-2}" width="8" height="4.5" rx="1.5" fill="${c}"/>`).join("")+'<g fill="#fff6dc">'+[[44,46],[60,48],[82,52],[26,52],[70,40]].map(([x,y])=>`<ellipse cx="${x}" cy="${y}" rx="2.6" ry="1.2"/>`).join("")+'</g>',
+mona:'<ellipse cx="60" cy="70" rx="44" ry="5" fill="#0001"/><rect x="22" y="48" width="76" height="18" rx="4" fill="#e3b36b"/><rect x="22" y="44" width="76" height="8" rx="4" fill="#fff4dc"/><ellipse cx="60" cy="32" rx="14" ry="17" fill="#5b3a29"/><ellipse cx="55" cy="25" rx="4" ry="6" fill="#8a5a3c" opacity=".7"/><path d="M44 38q16 10 32 0" stroke="#e63946" stroke-width="3" fill="none"/><circle cx="34" cy="40" r="3" fill="#2a9d8f"/><circle cx="86" cy="40" r="3" fill="#f4a261"/>',
+pessic:'<ellipse cx="60" cy="70" rx="40" ry="5" fill="#0001"/><path d="M28 66l4-32h56l4 32z" fill="#fff" stroke="#e5d6b8"/><ellipse cx="60" cy="34" rx="30" ry="10" fill="#f0c66e"/><path d="M30 34q30-26 60 0" fill="#f3cf7f"/><g fill="#fff">'+[...Array(14)].map((_,i)=>`<circle cx="${38+(i*13)%44}" cy="${22+(i*7)%12}" r="1.3"/>`).join("")+'</g>',
+braz:'<ellipse cx="60" cy="68" rx="48" ry="5" fill="#0001"/><rect x="14" y="34" width="80" height="30" rx="15" fill="#e8b874"/><rect x="14" y="34" width="80" height="12" rx="6" fill="#c9792b"/><circle cx="94" cy="49" r="15" fill="#f1cf8f"/><path d="M94 49m-3 0a3 3 0 1 1 6 0a6 6 0 1 1-12 0a9 9 0 1 1 18 0a12 12 0 1 1-24 0" fill="none" stroke="#fff4d4" stroke-width="2.5"/>',
+crema:'<ellipse cx="60" cy="66" rx="48" ry="6" fill="#0001"/><ellipse cx="60" cy="48" rx="48" ry="16" fill="#a5542b"/><ellipse cx="60" cy="45" rx="40" ry="11" fill="#c47a2b"/><path d="M30 44q14-6 26 0t26 0" stroke="#7a3e12" stroke-width="2" fill="none" opacity=".7"/><ellipse cx="48" cy="42" rx="8" ry="2.5" fill="#e8a64b" opacity=".8"/>',
+melimato:'<ellipse cx="60" cy="68" rx="44" ry="5" fill="#0001"/><ellipse cx="60" cy="58" rx="44" ry="10" fill="#e9eef0"/><path d="M34 58q0-26 26-26t26 26z" fill="#fffdf6" stroke="#eee8da"/><path d="M48 36q6 8 2 16M62 34q-4 10 4 20M72 40q2 6-2 12" stroke="#e9a91f" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="60" cy="33" rx="10" ry="3" fill="#f2b632"/>',
+bunyols:'<ellipse cx="60" cy="68" rx="44" ry="5" fill="#0001"/>'+[[36,52],[58,44],[80,52],[48,60],[70,60]].map(([x,y],i)=>`<path d="M${x-12} ${y}q2-12 12-11q11-1 12 10q-2 10-12 10q-10 0-12-9z" fill="${i%2?"#c8862f":"#d69a42"}"/>`).join("")+'<g fill="#fff">'+[...Array(18)].map((_,i)=>`<circle cx="${30+(i*11)%60}" cy="${40+(i*7)%24}" r="1.2"/>`).join("")+'</g>',
+massini:'<ellipse cx="60" cy="68" rx="46" ry="5" fill="#0001"/><rect x="18" y="36" width="84" height="28" rx="2" fill="#f0c97a"/><rect x="18" y="44" width="84" height="8" fill="#4e2c1c"/><rect x="18" y="56" width="84" height="8" fill="#f0c97a"/><rect x="18" y="30" width="84" height="8" rx="2" fill="#b8641f"/><path d="M26 33l6 2M46 32l6 3M70 33l6 2M88 32l6 3" stroke="#7d3c0e" stroke-width="2"/>',
+sara:'<ellipse cx="60" cy="68" rx="46" ry="5" fill="#0001"/><path d="M16 46v14q44 14 88 0V46z" fill="#e8c27e"/><ellipse cx="60" cy="46" rx="44" ry="13" fill="#f3dba8"/><g fill="#fff4dc" stroke="#d6a65c" stroke-width=".6">'+[...Array(22)].map((_,i)=>`<ellipse cx="${26+(i*17)%70}" cy="${38+(i*5)%16}" rx="4" ry="1.8" transform="rotate(${i*33} ${26+(i*17)%70} ${38+(i*5)%16})"/>`).join("")+'</g>',
+fava:'<ellipse cx="60" cy="68" rx="30" ry="4" fill="#0001"/><circle cx="60" cy="42" r="24" fill="#f2c94c" stroke="#c99a1b" stroke-width="3"/><ellipse cx="60" cy="42" rx="11" ry="15" fill="#e3b02f" transform="rotate(-20 60 42)"/><path d="M57 34q6 8 1 16" stroke="#c99a1b" stroke-width="2" fill="none"/><path d="M48 64l-6 10 8-2 4 6 2-12M72 64l6 10-8-2-4 6-2-12" fill="#2a9d8f"/>',
+obrador:'<ellipse cx="60" cy="68" rx="46" ry="5" fill="#0001"/><rect x="12" y="44" width="70" height="12" rx="6" fill="#d8b07a"/><rect x="4" y="47" width="12" height="6" rx="3" fill="#a87b45"/><rect x="78" y="47" width="12" height="6" rx="3" fill="#a87b45"/><path d="M98 16v26" stroke="#8a9aa3" stroke-width="3"/><path d="M98 42c-10 4-10 22 0 24c10-2 10-20 0-24z" fill="none" stroke="#b6c3ca" stroke-width="2.5"/><path d="M98 42c-4 6-4 18 0 24c4-6 4-18 0-24z" fill="none" stroke="#b6c3ca" stroke-width="2"/>',
+forn:'<ellipse cx="60" cy="68" rx="46" ry="5" fill="#0001"/><path d="M14 56q0-24 46-24t46 24q0 8-46 8t-46-8z" fill="#c98a3b"/><path d="M34 40l8 10M52 36l8 12M70 36l8 12M86 40l6 9" stroke="#f0c47b" stroke-width="4" stroke-linecap="round"/>'};
+const GLOS=[
+["Xuixo","«shúsho» · en castellano, chucho","Dulce","Masa fermentada y hojaldrada, enrollada con crema pastelera dentro, frita y rebozada en azúcar. Es el dulce de Girona.","girona","xuixo",{i:"Masa fermentada y hojaldrada (tipo croissant), crema pastelera, aceite para freír y azúcar.",c:"Se estira la masa, se pone un cordón de crema pastelera, se enrolla en forma de cilindro, se deja fermentar, se fríe y se reboza en azúcar todavía caliente.",w:"Todo el año. En Girona se venden muchos más durante Temps de Flors, en mayo.",t:"El auténtico de Girona es de crema pastelera. El gremio de pasteleros y el Ayuntamiento quieren crear una marca de garantía para protegerlo de imitaciones."}],
+["Catànies","«catánias»","Bombón","Almendra marcona caramelizada cubierta de pasta de almendra, avellana y leche, y de cacao en polvo. Creación de la familia Cudié, de Vilafranca del Penedès.","vilafranca","catanies",{i:"Almendra marcona, azúcar, pasta de almendra y avellana, leche, cacao en polvo y azúcar glas.",c:"Se tuesta y carameliza la almendra, se recubre con la pasta de almendra, avellana y leche, y al final se reboza en cacao y azúcar.",w:"Todo el año, como bombón o regalo.",t:"«Catànies» es una marca registrada: solo Bombons Cudié puede usar ese nombre. Hay versiones parecidas con otros nombres."}],
+["Merlets","«merléts»","Dulce","Dulce de almendra de Montblanc con forma de almena de muralla.","montblanc","merlets",{i:"Almendra, azúcar y huevo (la receta exacta es de la casa).",c:"Pasta de almendra moldeada con la forma de una almena (merlet en catalán) y horneada.",w:"Todo el año; es el recuerdo dulce de Montblanc.",t:"Los inventó la pastelería Andreu, en la calle Mayor, y los sigue haciendo."}],
+["Montblanquins","«monblanquíns»","Dulce","Otra especialidad de almendra de Montblanc, junto a los merlets y los carquinyolis.","montblanc","montblanquins",{i:"Almendra como ingrediente principal, como casi toda la repostería de la Conca de Barberà.",c:"Pastas de almendra horneadas; cada pastelería de la zona tiene su versión.",w:"Todo el año.",t:"La comarca está llena de almendros: por eso casi todos sus dulces son de almendra."}],
+["Carquinyolis","«carquiñólis»","Galleta","Galleta seca y dura con almendras enteras, parecida a los cantucci italianos.","","carquinyolis",{i:"Harina, azúcar, huevo y almendras enteras con piel; a veces ralladura de limón.",c:"Se forma un rulo de masa con las almendras, se hornea, se corta en rebanadas en diagonal y se vuelve a hornear para que queden secas.",w:"Todo el año. Aguantan mucho tiempo en lata.",t:"Se mojan en vino dulce (moscatel, ratafía) o en el café con leche."}],
+["Flaona","«flaóna»","Bollo","Media luna de masa de bollo rellena de crema, tradicional de la Garrotxa.","olot","flaona",{i:"Masa de bollo fermentada y crema pastelera.",c:"Se rellena un disco de masa con crema, se dobla en media luna, se sella el borde y se hornea.",w:"Las pastelerías de Olot que la recuperan la hacen sobre todo los fines de semana; Cacau Pastisseria, cada viernes.",t:"No hay que confundirla con el «flaó» de Valencia y Baleares, que lleva requesón."}],
+["Taps de Cadaqués","«taps de cadakés»","Bizcocho","Bizcocho pequeño en forma de tapón, típico de Cadaqués.","cadaques","tapons",{i:"Masa de bizcocho y almíbar, sin licor.",c:"Se hacían a mano, uno a uno, en Can Cabrisas, la pastelería que los hizo famosos desde 1925.",w:"Ahora mismo no se venden: Can Cabrisas cerró el 31 de octubre de 2026.",t:"La familia conserva la receta y podría volver a hacerlos en otro local. Si vas a Cadaqués, pregunta en el pueblo."}],
+["Margaritas (Puigcerdà)","","Bizcocho","Magdalenas de almendra con el borde crujiente, la especialidad de la pastelería Cosp de Puigcerdà.","puigcerda","margaritas",{i:"Almendra, huevo, azúcar y harina.",c:"Una masa tipo magdalena con almendra, horneada hasta que el borde queda crujiente.",w:"Todo el año.",t:"La pastelería Cosp, fundada en 1806, dice ser uno de los comercios más antiguos de Cataluña. (El dibujo es orientativo)."}],
+["Panellets","«panellets»","Dulce de fiesta","Bolitas de mazapán, sobre todo cubiertas de piñones, de Todos los Santos.","","panellets",{i:"Almendra molida, azúcar, a veces patata o boniato cocido, huevo y piñones.",c:"Se hace un mazapán, se forman bolitas, se rebozan en piñones (o coco, almendra, café…), se pintan con huevo y se hornean a fuego fuerte unos minutos.",w:"En la Castanyada, la noche del 31 de octubre y el 1 de noviembre, junto a castañas asadas y boniatos.",t:"Tienen el sello europeo de Especialidad Tradicional Garantizada. Se acompañan de un vino dulce, como el moscatel."}],
+["Neules","«néulas»","Barquillo","Barquillo fino y crujiente enrollado en forma de tubo, típico de Navidad.","","neules",{i:"Harina, azúcar, mantequilla y clara de huevo.",c:"Se extiende una capa muy fina de masa, se hornea y, todavía caliente y flexible, se enrolla en forma de tubo.",w:"En Navidad, en la sobremesa.",t:"Se mojan en cava o se sirven con helado o crema catalana."}],
+["Torró","«torró» · turrón","Dulce de fiesta","Turrón. El más típico de Cataluña es el de Agramunt.","","torro",{i:"El de Agramunt: almendras o avellanas tostadas, miel, azúcar y clara de huevo, entre dos obleas.",c:"Se cuecen la miel y el azúcar, se añade la clara montada y los frutos secos, y se prensa entre obleas.",w:"En Navidad.",t:"El turrón de Agramunt se hace desde 1741 y tiene Indicación Geográfica Protegida. En Cataluña también son muy típicos los de crema catalana, yema tostada o praliné."}],
+["Tortell de Reis","«tortéll de réis»","Pastel de fiesta","Roscón catalán del 6 de enero, de hojaldre o brioche, a menudo relleno de mazapán.","","tortell",{i:"Masa de hojaldre o brioche, mazapán (o nata, trufa, crema), fruta confitada, azúcar y almendra.",c:"Se forma un anillo de masa con el relleno, se decora con fruta confitada y se hornea.",w:"El día de Reyes, 6 de enero.",t:"Dentro esconde una haba (fava) y una figurita. La tradición dice que quien encuentra la haba paga el tortell, y quien encuentra la figurita se pone la corona."}],
+["Coca","«cóca»","Masa","Masa plana, dulce o salada. Hay una coca para cada fiesta.","","coca",{i:"Masa de brioche o de pan; según el tipo, crema, fruta confitada, piñones, azúcar o chicharrones.",c:"Se estira la masa en forma alargada, se cubre y se hornea.",w:"La de Sant Joan, en la verbena del 23 de junio, con cava. La de llardons (chicharrones), en Dijous Gras, el jueves antes de Carnaval.",t:"En Vilafranca del Penedès también son famosas las cocas de la casa."}],
+["Mona de Pasqua","«móna de páscua»","Pastel de fiesta","Pastel de Pascua que el padrino regala al ahijado.","","mona",{i:"Antes: bizcocho o masa dulce con huevos duros. Hoy: bizcocho, crema o trufa y figuras de chocolate.",c:"Una base de pastel decorada con figuras y huevos de chocolate, plumas y figuritas.",w:"El Lunes de Pascua.",t:"Las pastelerías compiten con figuras de chocolate cada vez más espectaculares: es un buen escaparate para ver técnica de chocolatería."}],
+["Pa de pessic","«pa de pesíc»","Bizcocho","Bizcocho muy esponjoso; el nombre significa «pan de pellizco».","vic","pessic",{i:"Huevo, azúcar y harina (o fécula), sin grasa.",c:"Se montan mucho los huevos con el azúcar, se incorpora la harina con cuidado y se hornea en molde alto.",w:"Todo el año; también es la base de muchos otros pasteles.",t:"El de Vic tiene fama: muchos visitantes se lo llevan como recuerdo."}],
+["Braç de gitano","«bras de yitáno»","Pastel","Brazo de gitano: plancha de bizcocho enrollada con relleno.","","braz",{i:"Plancha de bizcocho y relleno de crema, nata o trufa.",c:"Se hornea una plancha fina, se rellena y se enrolla en caliente para que no se rompa.",w:"Todo el año.",t:"La versión catalana suele llevar por encima yema (crema) tostada."}],
+["Crema catalana","","Postre","Crema de leche y yema con una costra de azúcar quemado.","","crema",{i:"Leche, yemas, azúcar, almidón de maíz, piel de limón y canela.",c:"Se infusiona la leche con limón y canela, se espesa con las yemas y el almidón, se enfría en cazuelitas de barro y, al servir, se quema el azúcar por encima.",w:"Todo el año; la fecha tradicional es el 19 de marzo, Sant Josep.",t:"Antes el azúcar se quemaba con una pala de hierro al rojo; por eso también se llama «crema cremada»."}],
+["Mel i mató","«mel i mató»","Postre","Requesón fresco (mató) con miel.","montserrat","melimato",{i:"Mató (requesón fresco sin sal, de vaca o cabra) y miel.",c:"No se cocina: se sirve el mató frío con un buen chorro de miel.",w:"Todo el año.",t:"En Montserrat lo venden los payeses en los puestos de la entrada al monasterio."}],
+["Bunyols","«buñóls»","Dulce de fiesta","Buñuelos fritos de Cuaresma y Semana Santa.","figueres","bunyols",{i:"Harina, huevo, leche, levadura, a veces anís y ralladura de limón, aceite y azúcar.",c:"Se deja fermentar la masa, se fríen pequeñas porciones en aceite y se rebozan en azúcar.",w:"En Cuaresma y Semana Santa.",t:"Los «bunyols de vent» son huecos por dentro y a menudo se rellenan de crema o nata."}],
+["Massini","«masíni»","Pastel","Pastel de bizcocho con trufa y crema quemada.","","massini",{i:"Bizcocho, trufa (nata con chocolate), yema o crema y azúcar.",c:"Capas de bizcocho y trufa, cubiertas con una capa de crema o yema quemada.",w:"Un clásico de domingo en las pastelerías.",t:"Está dedicado al tenor Angelo Masini, que cantó en el Liceu entre 1881 y 1887 (se escribe con una sola «s»)."}],
+["Sara","«sára»","Pastel","Pastel de bizcocho con crema de mantequilla y almendra laminada tostada.","","sara",{i:"Bizcocho, almíbar, crema de mantequilla y almendra laminada.",c:"Se emborracha el bizcocho, se rellena y se cubre con crema de mantequilla, y se reboza en almendra tostada.",w:"Todo el año.",t:"Es uno de los pasteles «con nombre propio» clásicos de las pastelerías catalanas."}],
+["Fava de Cacau","«fába de cacáu»","Premio","Premio que reconoce a las 50 mejores pastelerías de Cataluña. Entre ellas, la Fava d'Or distingue a la mejor de cada territorio.","","fava",{i:"",c:"Un jurado visita y valora pastelerías de todo el país. Las 50 elegidas reciben la Fava de Cacau, y la mejor de cada zona, la Fava d'Or.",w:"Se entregan cada año a finales de enero en Sant Vicenç dels Horts, durante la Mostra Internacional de Pastisseria.",t:"El nombre viene del haba de cacao (fava de cacau), la semilla con la que se hace el chocolate, no del haba del tortell de Reis."}],
+["Obrador","«obradó»","Oficio","El taller donde se elabora la pastelería, detrás de la tienda.","","obrador",{i:"",c:"Allí se hacen las masas, las cremas y los horneados. Muchas pastelerías históricas tienen el obrador en el mismo edificio.",w:"",t:"Algunas casas, como Bombons Cudié en Vilafranca, permiten visitar su obrador."}],
+["Pastisseria / Forn / Fleca","«pastisería / forn / fléca»","Oficio","Pastelería / horno / panadería.","","forn",{i:"",c:"«Forn de pa» es la panadería tradicional con horno propio; «fleca» es otra forma de decir panadería.",w:"",t:"Muchos forns también hacen coques, panellets y tortells en temporada."}]
+];
+
+const LK={rod:["Horarios de Rodalies","https://rodalies.gencat.cat/"],renfe:["Horarios de Renfe (regionales)","https://www.renfe.com/"],teisa:["Horarios de TEISA","https://www.teisa-bus.com/"],sag:["Horarios de Sagalés","https://www.sagales.com/"],mov:["Horarios de Moventis (Sarfa)","https://www.moventis.es/"],cre:["Horarios del cremallera","https://www.cremallerademontserrat.cat/"],cre2:["Horarios del cremallera de Núria","https://turistren.cat/es/trenes/cremallera-de-nuria/"],alsa:["Horarios de ALSA","https://www.alsa.com/"],fgc:["Horarios de FGC","https://www.fgc.cat/"],pujol:["Horarios del bus Pujol (Blanes–Lloret–Tossa)","https://www.google.com/search?q=horaris+bus+Pujol+Blanes+Lloret+Tossa"]};
+const BACK=(id)=>{const r3=["garriga","centelles","ripoll","puigcerda"];
+ if(id=="vic")return{w:1,t:"El bus directo de Renfe Vic–Fabra i Puig pasa cada 20 minutos más o menos. Mira en la web de Rodalies a qué hora sale el último.",l:[LK.rod]};
+ if(r3.includes(id))return{w:1,t:"Con las obras de la R3, el último bus de La Garriga a Barcelona sale hacia las 21:00 (dato sin confirmar: compruébalo antes de salir). Calcula el tren de vuelta para llegar antes a La Garriga.",l:[LK.rod]};
+ const m={rupit:{w:2,t:"Solo hay unos 3 buses al día de Rupit a Vic. Desde Vic vuelves en el bus directo de Renfe a Fabra i Puig: mira a qué hora sale el último. Apunta los horarios antes de salir.",l:[LK.sag,LK.rod]},
+ montblanc:{w:2,t:"Solo hay unos 5 trenes al día. Apunta el último que vuelve a Sant Vicenç de Calders antes de salir.",l:[LK.renfe,LK.rod]},
+ miravet:{w:2,t:"Solo hay un par de trenes al día desde Móra la Nova, y la vuelta suele ser por la tarde. Queda con el taxi para llegar a tiempo.",l:[LK.renfe]},
+ cadaques:{w:2,t:"Hay pocos buses a Figueres. En invierno, el bus directo de Sarfa a Barcelona sale a las 7:15 y a las 17:00 (comprobado en noviembre de 2026).",l:[LK.mov,LK.renfe]},
+ besalu:{w:1,t:"El bus directo de TEISA a Barcelona pasa unas 4 veces al día y la vuelta tarda algo más que la ida. Apunta el último. Si lo pierdes, hay buses a Girona y desde allí regionales.",l:[LK.teisa,LK.renfe]},
+ pals:{w:2,t:"Hay pocos buses de Sarfa de vuelta a Barcelona. Apunta el último antes de salir.",l:[LK.mov]},
+ camprodon:{w:2,t:"El bus directo a Barcelona pasa unas 3 veces al día. Si lo pierdes, hay bus a Ripoll y allí la R3 (con el bus de las obras desde La Garriga).",l:[LK.teisa,LK.rod]},
+ solsona:{w:2,t:"Solo hay unos 3 buses directos al día a Barcelona. Apunta el último.",l:[LK.alsa]},
+ llivia:{w:2,t:"Hay pocos buses a Puigcerdà, y desde allí el tren tarda unas 2 h 30 hasta La Garriga. Mejor duerme una noche.",l:[LK.alsa,LK.rod]},
+ lloret:{w:1,t:"El bus de Pujol a Blanes pasa cada 30 minutos más o menos, menos en invierno. Mira el último.",l:[LK.pujol,LK.mov]},tossa:{w:1,t:"Hay buses de Pujol a Lloret y Blanes durante el día, pero menos en invierno. Mira el último. También hay bus directo de Sarfa a Barcelona.",l:[LK.pujol,LK.mov]},
+ tarragona:{w:0,t:"Hay muchos trenes de vuelta a Sant Vicenç durante el día, y allí enlazas con la R2 Sud.",l:[LK.renfe,LK.rod]},altafulla:{w:0,t:"Hay muchos trenes de vuelta a Sant Vicenç durante el día, y allí enlazas con la R2 Sud.",l:[LK.renfe,LK.rod]},reus:{w:0,t:"Hay trenes de vuelta durante el día, directos o cambiando en Tarragona.",l:[LK.renfe,LK.rod]},
+ poblet:{w:2,t:"Solo hay unos 5 trenes al día en L'Espluga. Calcula la hora de un camino de una hora hasta la estación.",l:[LK.renfe]},
+ lleida:{w:2,t:"Hay pocos regionales. Si vas y vuelves en el día, la opción es el Avant/AVE (sin abono).",l:[LK.renfe]},
+ tortosa:{w:1,t:"Hay unos 10 trenes al día. Apunta el último hacia Sant Vicenç.",l:[LK.renfe]},
+ nuria:{w:2,t:"El último cremallera que enlaza con el tren baja a última hora de la tarde, y después necesitas llegar a La Garriga antes del último bus (hacia las 21:00, sin confirmar). En noviembre el cremallera solo funciona los fines de semana.",l:[LK.cre2,LK.rod]},
+ olot:{w:1,t:"Hay muchos buses Olot–Girona por Amer; los que pasan por Besalú son menos. Mira el último.",l:[LK.teisa,LK.renfe]},castellfollit:{w:1,t:"El bus pasa cada pocas horas: apunta el de vuelta.",l:[LK.teisa,LK.renfe]},
+ banyoles:{w:0,t:"Hay buses frecuentes a Girona durante el día.",l:[LK.teisa,LK.renfe]},
+ cardona:{w:1,t:"Hay unos 8–12 buses al día a Manresa. Mira el último.",l:[LK.alsa,LK.rod]},
+ santjoan:{w:2,t:"Hay pocos buses a Ripoll, y después necesitas llegar a La Garriga antes del último bus (hacia las 21:00, sin confirmar).",l:[LK.teisa,LK.rod]},
+ igualada:{w:1,t:"Los trenes de FGC a Martorell pasan más o menos cada hora. Apunta el último antes de salir.",l:[LK.fgc,LK.rod]},
+ salou:{w:1,t:"Solo hay unos 3 R17 directos al día a Barcelona. Si no te cuadra, coge la RT2 a Tarragona y allí un regional. Apunta el último antes de salir.",l:[LK.renfe,LK.rod]},
+ montserrat:{w:1,t:"Mira a qué hora baja el último cremallera; el FGC pasa más o menos cada hora.",l:[LK.cre,LK.rod]},
+ girona:{w:0,t:"Hay regionales de vuelta hasta la noche; en Maçanet enlazas con la R1. Apunta el último antes de salir.",l:[LK.renfe,LK.rod]},figueres:{w:0,t:"Hay regionales de vuelta hasta la noche; en Maçanet enlazas con la R1. Apunta el último antes de salir.",l:[LK.renfe,LK.rod]}};
+ return m[id]||{w:0,t:"Hay trenes cada 15–30 minutos (menos en los tramos finales). Los últimos de vuelta salen más o menos a las 22–23 h: confírmalo en la app de Renfe Cercanías.",l:[LK.rod]}};
+let TM=true,VIS=new Set();
+try{VIS=new Set(JSON.parse(localStorage.getItem("rod_vis")||"[]"))}catch(e){}
+const save=()=>{try{localStorage.setItem("rod_vis",JSON.stringify([...VIS]))}catch(e){}};
+const incl=l=>l[5]||(TM&&l[0]=="metro");
+const inZ=(d,z=zone)=>z=="all"||(z=="med"?MED.has(d[0]):z=="pas"?PASSET.has(d[0]):d[1]==z);
+const r1=(to,m,note)=>["train","R1","badalona",to,m,1,note||"Dirección Maçanet-Massanes o Blanes."];
+const toS=["train","R1","badalona","sants",20,1,"Dirección L'Hospitalet de Llobregat."];
+const toP=["train","R1","badalona","pcat",14,1,"Dirección L'Hospitalet de Llobregat."];
+const toC=["train","R1","badalona","clot",8,1,"Dirección L'Hospitalet de Llobregat."];
+const toA=["train","R1","badalona","arc",11,1,"Dirección L'Hospitalet de Llobregat."];
+const toGV=["walk","WK1","pcat","gv",8,1,"Unos 600 m a pie hasta la parada de la Gran Via, 658, cerca del Passeig de Gràcia."];
+const bus3=[toC,["metro","L1","clot","fip",6,0,"Metro L1 dirección Fondo, tres paradas. Lo cubre tu T-usual."],["bus","BUS3","fip","garriga",46,1,"Bus de sustitución de Renfe, sale cada hora en punto. Confirma en la parada que vale el abono."]];
+const busV=[toC,["metro","L1","clot","fip",6,0,"Metro L1 dirección Fondo, tres paradas. Lo cubre tu T-usual."],["bus","BUSV","fip","vic",65,1,"Bus directo de Renfe que sustituye a la R3: pasa cada 20 minutos más o menos. Lo cubre el abono; confírmalo al subir."]];
+// [id,zone,legs,see,fact]
+const D=[
+["mataro","n",[r1("mataro",25)],"La Nau Gaudí (la primera obra que Gaudí llegó a construir), la basílica de Santa Maria y el puerto.","En 1848 se inauguró aquí el primer tren de la península ibérica, entre Barcelona y Mataró: la misma vía que usas tú."],
+["caldes","n",[r1("caldes",35)],"Las aguas termales que se usan desde la época romana, el paseo marítimo y la Fundació Palau, con obra de Picasso.","Es un pueblo muy pequeño, pero fue un balneario de moda de la burguesía barcelonesa."],
+["arenys","n",[r1("arenys",40)],"La Riera, el mercado, el cementerio con vistas al mar y el museo del encaje de bolillos.","Salvador Espriu lo llamó «Sinera»: es Arenys escrito al revés."],
+["canet","n",[r1("canet",45)],"La casa-museo de Domènech i Montaner y el castillo de Santa Florentina.","El arquitecto del Palau de la Música tenía aquí su casa y su taller de verano."],
+["santpol","n",[r1("santpol",50)],"La estación está casi en la playa. Puedes subir a la ermita de Sant Pau y pasear por las calles blancas del pueblo.","Aquí estuvo el restaurante de Carme Ruscalleda, con tres estrellas Michelin, que cerró en 2018."],
+["calella","n",[r1("calella",55)],"El faro de Calella, les Torretes y el paseo de plátanos junto a la playa.","Les Torretes son dos torres de telegrafía óptica del siglo XIX: los mensajes viajaban de torre en torre con señales visuales."],
+["pineda","n",[r1("pineda",58)],"La iglesia de Santa Maria, con una inscripción en la puerta que recuerda el ataque de los piratas turcos de Dragut en 1545; la larga playa y el paseo marítimo; el campo hacia el Montnegre.","La primera iglesia de Santa Maria se consagró en el año 1079; la actual es de los siglos XVI-XVIII."],
+["igualada","x",[toP,["train","R4","pcat","martorell",35,1,"Dirección Sant Vicenç de Calders."],["train","IGF","martorell","igualada",55,0,"En la misma estación (Martorell Central) cambia a FGC, línea R6 dirección Igualada. Billete aparte."]],"El barrio del Rec, con las antiguas curtidurías junto al canal; el Museo de la Piel en Cal Boyer, una fábrica de algodón del siglo XIX; la basílica de Santa Maria y la Rambla.","Igualada vivió del curtido de pieles durante siglos; en la Adoberia de Cal Granotes se ve cómo se trabajaba. El tren llegó desde Martorell en 1893."],
+["blanes","n",[r1("blanes",70,"Dirección Maçanet-Massanes. La estación está a las afueras: bus urbano o unos 25 min a pie hasta el centro.")],"El Jardí Botànic Marimurtra, colgado sobre el mar, y la roca de Sa Palomera.","Sa Palomera marca el inicio oficial de la Costa Brava."],
+["garraf","s",[toS,["train","R2S","sants","garraf",35,1,"Dirección Sant Vicenç de Calders. No todos los trenes paran en Garraf."]],"Las casetas de baño verdes y blancas, el pequeño puerto y las Bodegas Güell.","El tramo de tren entre acantilados y túneles es de los más bonitos de Cataluña."],
+["sitges","s",[toS,["train","R2S","sants","sitges",40,1,"Dirección Sant Vicenç de Calders. Fíjate en que sea R2 Sud: los regionales no paran en Sitges."]],"La iglesia sobre la roca junto al mar, el Cau Ferrat de Rusiñol, el Museu de Maricel y el paseo marítimo.","Cada octubre se celebra aquí el Festival de Cine Fantástico, y su carnaval es de los más famosos de España."],
+["vilanova","s",[toS,["train","R2S","sants","vilanova",50,1,"Dirección Sant Vicenç de Calders."]],"El Museu del Ferrocarril de Catalunya, al lado de la estación, y la Biblioteca Museu Víctor Balaguer.","Es la tierra del xató, que Vilanova y Sitges se disputan."],
+["calafell","s",[toS,["train","R2S","sants","calafell",65,1,"Dirección Sant Vicenç de Calders."]],"La Ciutadella Ibèrica (un poblado ibérico reconstruido) y el barrio marinero.","La Casa Barral, del editor del boom latinoamericano Carlos Barral, es hoy un museo."],
+["vendrell","s",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R4","svc","vendrell",5,1,"Una parada en un R4 dirección Manresa."]],"El Museu Pau Casals, en la playa de Sant Salvador, y la Fundació Apel·les Fenosa.","Pau Casals, uno de los mejores violonchelistas de la historia, nació aquí en 1876."],
+["sadurni","i",[toP,["train","R4","pcat","sadurni",50,1,"Dirección Sant Vicenç de Calders."]],"Las bodegas de Codorníu (edificios de Puig i Cadafalch, visita de pago con reserva) y Freixenet, junto a la estación.","Es la capital del cava: bajo el pueblo hay kilómetros de galerías subterráneas."],
+["vilafranca","i",[toP,["train","R4","pcat","vilafranca",65,1,"Dirección Sant Vicenç de Calders."]],"El Vinseum (museo del vino), la basílica de Santa Maria y el mercado.","Es una de las cunas de los castells, Patrimonio de la Humanidad desde 2010."],
+["martorell","i",[toP,["train","R4","pcat","martorell",35,1,"Dirección Sant Vicenç de Calders."]],"El Pont del Diable, un puente medieval construido sobre un arco romano.","Es el punto de cambio a FGC para ir a Montserrat."],
+["terrassa","i",[toP,["train","R4","pcat","terrassa",45,1,"Dirección Manresa."]],"La Seu d'Ègara (iglesias prerrománicas), el mNACTEC y la Masia Freixa.","Fue la «Manchester catalana» de la industria textil."],
+["manresa","i",[toP,["train","R4","pcat","manresa",85,1,"Dirección Manresa, hasta el final (última estación del abono)."]],"La basílica de la Seu, la Cova de Sant Ignasi y el puente viejo.","San Ignacio de Loyola empezó aquí sus Ejercicios Espirituales en 1522."],
+["granollers","i",[toC,["train","R2N","clot","granollers",30,1,"Dirección Granollers Centre o Maçanet-Massanes."]],"La Porxada, un mercado cubierto del siglo XVI, y el casco antiguo.","Los jueves tiene uno de los mercados semanales más grandes de Cataluña."],
+["hostalric","i",[toC,["train","R2N","clot","hostalric",65,1,"Dirección Maçanet-Massanes."]],"Un pueblo medieval amurallado sobre roca volcánica, con su castillo.","Es poco conocido por los turistas y queda justo antes de Maçanet, el límite del abono."],
+["garriga","i",[...bus3],"La Illa Raspall, con casas de veraneo modernistas, y el balneario.","Fue un lugar de veraneo y aguas termales de la burguesía barcelonesa."],
+["vic","i",[...busV],"La Plaça Major (el Mercadal), la catedral con murales de Sert, el templo romano y el Museu Episcopal.","Tiene mercado los sábados y los martes desde la Edad Media, y es la tierra del fuet."],
+["ripoll","i",[...bus3,["train","R3","garriga","ripoll",80,1,"Dirección Ripoll o Puigcerdà."]],"El monasterio de Santa Maria y su portada románica, la «Biblia de piedra».","Allí está enterrado Guifré el Pilós, considerado el padre de Cataluña."],
+["puigcerda","i",[...bus3,["train","R3","garriga","puigcerda",150,1,"Dirección Puigcerdà, hasta el final. Conviene salir muy temprano."]],"El lago, el campanario y la Cerdanya, en plena frontera con Francia.","Es la última estación del abono en la R3."],
+["montserrat","x",[toP,["train","R4","pcat","martorell",35,1,"Dirección Sant Vicenç de Calders."],["train","FGC","martorell","monistrol",25,0,"Cambia a FGC (sigue los carteles), línea R5 dirección Manresa. Billete aparte."],["rack","CRE","monistrol","montserrat",15,0,"Unos 15–20 € ida y vuelta (precio aproximado: míralo en la web). O sube a pie: 1,5–2 h por el camino."]],"El monasterio, la Moreneta y los caminos entre las agujas de roca.","La estación de Renfe «Castellbell i el Vilar–Monistrol» no es la del cremallera: no te bajes ahí."],
+["girona","x",[r1("macanet",85,"Dirección Maçanet-Massanes, por la costa, hasta el final (última estación del abono)."),["train","REG","macanet","girona",23,0,"Regional R11 o RG1. Unos 4–5 €. Compra el billete antes de subir. Algunos RG1 de laborable vienen de la costa y siguen hasta Girona y Figueres sin cambiar en Maçanet (compruébalo en la app; el tramo desde Maçanet se paga igual). Opción rápida: el R11 desde El Clot-Aragó, todo con billete aparte."]],"Las casas de colores sobre el Onyar, la catedral, el barrio judío y el paseo por la muralla.","Desde Girona puedes seguir en regional hasta Figueres y el Museo Dalí."],
+["lloret","x",[r1("blanes",70),["bus","BUSC","blanes","lloret",20,0,"Bus de Pujol desde Blanes, cada 30 minutos más o menos. Billete aparte."]],"Los jardines de Santa Clotilde y el paseo marítimo.","Desde aquí se puede seguir a pie por el camino de ronda hacia Tossa."],
+["tossa","x",[r1("blanes",70),["bus","BUSC","blanes","tossa",40,0,"Bus de Pujol por Lloret. Billete aparte."]],"La Vila Vella, con sus murallas y torres sobre el mar.","Es el único recinto medieval amurallado que se conserva en la costa catalana."],
+["figueres","x",[r1("macanet",85,"Dirección Maçanet-Massanes, por la costa, hasta el final (última estación del abono)."),["train","REG","macanet","figueres",55,0,"Regional R11 o RG1 dirección Figueres. Billete aparte: cómpralo antes de subir. Algunos RG1 de laborable siguen desde la costa sin cambiar en Maçanet (compruébalo en la app)."]],"El Teatre-Museu Dalí (entrada de pago, mejor reservar), la Rambla y el castillo de Sant Ferran.","Dalí nació en Figueres en 1904 y está enterrado en la cripta de su propio museo."],
+["cadaques","x",[["train","R1","badalona","clot",8,1,"Dirección L'Hospitalet de Llobregat. Coge uno que llegue a El Clot-Aragó antes de las 6:00."],["train","R11","clot","figueres",105,0,"Regional R11 de las 5:56 desde Sants (laborables): pasa por El Clot-Aragó unos 10 minutos después y llega a Figueres a las 7:47. Billete aparte. Horario de invierno, comprobado en noviembre de 2026."],["bus","BUSF","figueres","cadaques",70,0,"Bus de Moventis Sarfa (línea 12) desde la estación de autobuses, al lado de la de tren: sale a las 8:15 y llega a las 9:25 (horario de invierno, comprobado en noviembre de 2026). Hay pocos buses al día."]],"El pueblo blanco junto al mar, la iglesia de Santa Maria y la Casa Dalí de Portlligat (15,50 €, con reserva; precio comprobado en noviembre de 2026).","En invierno es difícil ir y volver en el día: sal muy temprano o quédate a dormir. Dalí vivió y pintó en Portlligat, a unos 15 minutos a pie del pueblo."],
+["tarragona","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","REGT","svc","tarragona",23,0,"Regional R14, R15, R16 o R17 (o Rodalies RT2). Pasan muchos al día; unos 4 €."]],"El anfiteatro romano junto al mar, la Part Alta con la catedral, el paseo arqueológico de la muralla y el Balcó del Mediterrani.","Tàrraco fue una de las grandes ciudades de la Hispania romana; su conjunto arqueológico es Patrimonio de la Humanidad desde 2000."],
+["altafulla","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","REGT","svc","altafulla",15,0,"Regional R14, R15 o R16 (o RT2) hasta Altafulla-Tamarit. Billete aparte."]],"La Vila Closa medieval con su castillo, la playa con las casas de pescadores y el castillo de Tamarit sobre el mar.","Cerca está la villa romana dels Munts, parte del conjunto Tàrraco, Patrimonio de la Humanidad."],
+["reus","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R15","svc","reus",45,0,"Regional R14 o R15 (o cambia en Tarragona a la RT1). Billete aparte."]],"La Ruta del Modernismo con la Casa Navàs, el Gaudí Centre y la plaza del Mercadal.","Antoni Gaudí nació en Reus en 1852."],
+["poblet","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R13","svc","espluga",65,0,"Regional R13 o R14 dirección Lleida. Solo hay unos 5 trenes al día."],["walk","WALKP","espluga","poblet",50,1,"Unos 4 km por camino señalizado desde la estación (o taxi)."]],"El monasterio cisterciense de Santa Maria de Poblet, todavía habitado por monjes, con las tumbas reales.","Es Patrimonio de la Humanidad desde 1991 y fue el panteón de los reyes de la Corona de Aragón."],
+["lleida","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R13","svc","lleida",130,0,"Regional R13 o R14 hasta Lleida-Pirineus. Pocos trenes. Más rápido pero sin abono: Avant o AVE desde Sants, en una hora más o menos."]],"La Seu Vella, la catedral antigua sobre el cerro, el castillo del Rei (la Suda) y el Eje Comercial.","La Seu Vella se ve desde toda la llanura y es el gran símbolo de la ciudad."],
+["tortosa","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R16","svc","tortosa",105,0,"Regional R16 dirección Tortosa o Ulldecona. Unos 10 trenes al día."]],"La catedral gótica, el castillo de la Suda sobre la ciudad, los Reials Col·legis renacentistas y los jardines del Príncipe.","Fue ciudad de frontera entre cristianos y musulmanes: la Suda era su fortaleza árabe."],
+["nuria","x",[...bus3,["train","R3","garriga","ribes",100,1,"Dirección Puigcerdà. Bájate en Ribes de Freser (Ribes-Enllaç)."],["rack","CRN","ribes","nuria",40,0,"El cremallera sale de la misma estación: 34 € ida y vuelta desde Ribes, con el teleférico incluido (comprobado en noviembre de 2026). En noviembre solo funciona los fines de semana."]],"El santuario, el lago, el teleférico de la Coma del Clot y el Camí Vell, que baja a pie hasta Queralbs.","A Núria no llega ninguna carretera: solo se sube en cremallera o a pie."],
+["olot","x",[r1("macanet",85,"Dirección Maçanet-Massanes, por la costa, hasta el final (última estación del abono)."),["train","REG","macanet","girona",23,0,"Regional R11 o RG1 hasta Girona. Unos 4–5 €."],["bus","TEI","girona","olot",80,0,"Bus de TEISA a Olot desde la estación de autobuses de Girona: muchos al día por Amer y algunos por Besalú y Castellfollit."]],"Los volcanes de la Garrotxa (el Montsacopa está dentro de la ciudad), el Museo de los Volcanes y el centro histórico.","Olot está rodeada de una treintena de volcanes apagados del Parque Natural de la Zona Volcánica de la Garrotxa."],
+["castellfollit","x",[r1("macanet",85,"Dirección Maçanet-Massanes, por la costa, hasta el final (última estación del abono)."),["train","REG","macanet","girona",23,0,"Regional R11 o RG1 hasta Girona. Unos 4–5 €."],["bus","TEI","girona","castellfollit",60,0,"Bus de TEISA Girona–Olot por Besalú, con parada en Castellfollit. Pasa cada pocas horas."]],"El pueblo colgado al borde del acantilado de basalto y el mirador del final del pueblo, junto a la iglesia vieja.","El acantilado, de unos 50 m, lo formaron coladas de lava de los volcanes de la Garrotxa."],
+["banyoles","x",[r1("macanet",85,"Dirección Maçanet-Massanes, por la costa, hasta el final (última estación del abono)."),["train","REG","macanet","girona",23,0,"Regional R11 o RG1 hasta Girona. Unos 4–5 €."],["bus","BAN","girona","banyoles",25,0,"Bus de TEISA desde la estación de autobuses de Girona. Billete aparte."]],"El paseo alrededor del lago, el monasterio de Sant Esteve y la plaza porticada del centro.","El lago es el más grande de Cataluña y acogió las pruebas de remo de los Juegos Olímpicos de 1992."],
+["cardona","x",[toP,["train","R4","pcat","manresa",85,1,"Dirección Manresa, hasta el final."],["bus","ALSA","manresa","cardona",45,0,"Bus de ALSA desde la estación de autobuses de Manresa. Unos 8–12 al día; unos 4 €."]],"El castillo sobre la colina, con la colegiata románica de Sant Vicenç, y la Montaña de Sal, que se visita con guía.","La Montaña de Sal es una formación natural que se explota desde la Antigüedad."],
+["santjoan","x",[...bus3,["train","R3","garriga","ripoll",80,1,"Dirección Ripoll o Puigcerdà."],["bus","RIP","ripoll","santjoan",15,0,"Bus de TEISA Ripoll–Olot por Sant Joan. Pocos al día; billete aparte."]],"El monasterio con el Santíssim Misteri y el puente medieval sobre el río Ter.","El Santíssim Misteri es un grupo románico de madera del Descendimiento de la Cruz, del año 1251."],
+["salou","x",[toS,["train","R17","sants","salou",85,0,"Regional R17 directo hasta Salou-PortAventura. Solo hay unos 3 al día por sentido, y desde Barcelona no sale ninguno directo por la tarde. Si no te cuadra, ve a Tarragona y cambia a la RT2 (13 minutos). Billete aparte."]],"PortAventura Park y Ferrari Land, a pie desde la estación; las playas de Salou y su paseo marítimo.","La estación de Salou-PortAventura, inaugurada en 2025, está al lado del resort: se entra al parque andando."],
+["besalu","x",[toP,toGV,["bus","BUSB","gv","besalu",101,0,"Bus directo de TEISA (Barcelona–Olot por Banyoles). Laborables a las 9:15, 13:30, 17:30 y 19:30; sábados a las 9:30, 14:00, 17:00 y 19:00 (comprobado en noviembre de 2026). Billete aparte. Otra opción: R1 hasta Maçanet, regional a Girona y bus TEISA."]],"El puente románico fortificado sobre el río Fluvià, el barrio judío y la plaza porticada.","Su miqvé (baño ritual judío) es uno de los pocos medievales que se conservan en Europa."],
+["montblanc","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R13","svc","montblanc",57,0,"Regional R13 o R14 dirección Lleida. Solo hay unos 5 trenes al día: mira el horario antes. Unos 4–7 €."]],"Las murallas medievales casi enteras con sus torres, la iglesia de Santa Maria y el casco antiguo.","Según la leyenda, aquí mató Sant Jordi al dragón. Cada abril, alrededor del 23, se celebra la Setmana Medieval."],
+["miravet","x",[toS,["train","R2S","sants","svc",75,1,"Dirección Sant Vicenç de Calders, hasta el final."],["train","R15","svc","moralanova",90,0,"Regional R15 dirección Riba-roja d'Ebre. Solo hay un par de trenes al día: cuadra bien la conexión en Sant Vicenç."],["taxi","TAXI","moralanova","miravet",15,0,"Miravet no tiene tren. Unos 10 km en taxi: resérvalo con antelación."]],"El castillo templario sobre el Ebro, el casco antiguo colgado de la roca y el «pas de barca», una barca que cruza el río empujada solo por la corriente.","El castillo, de origen árabe, fue de los templarios y resistió un asedio hasta 1308."],
+["rupit","x",[...busV,["bus","SAG","vic","rupit",80,0,"Bus de Sagalés (línea 462/464) desde Vic. Solo hay unos 3 al día: mira el horario. Unos 5–8 €."]],"El puente colgante sobre la riera, las calles empedradas y las casas de piedra con balcones de madera.","Está en el Collsacabra, junto a acantilados: el Salt de Sallent, uno de los saltos de agua más altos de Cataluña, queda a una caminata."],
+["llavaneres","n",[r1("llavaneres",30)],"El pueblo antiguo, a unos 2 km tierra adentro (bus urbano o paseo de media hora), con la Plaça de la Vila y la iglesia de Sant Andreu; la playa de l'Estació, junto a la vía, y el puerto deportivo del Balís.","Sus guisantes (pèsols) tienen fama, y la coca de Llavaneres es su dulce tradicional."],
+["arboc","i",[toP,["train","R4","pcat","arboc",70,1,"Dirección Sant Vicenç de Calders."]],"La Giralda, una copia a media escala de la de Sevilla, con salas inspiradas en la Alhambra. Solo se visita con cita y ha estado cerrada por obras: pregunta antes de ir. También el centro, con la iglesia de Sant Julià.","La mandó construir Joan Roquer i Marí, un vecino rico del pueblo, al volver entusiasmado de su viaje de novios por Andalucía."],
+["centelles","i",[...bus3,["train","R3","garriga","centelles",15,1,"Dirección Vic o Ripoll."]],"El casco antiguo, con el Portal Nou (siglo XVI), las calles de la Vila Comtal y el Palau dels Comtes.","Aquí se convoca el Premi de Pintura Centelles, el concurso de pintura libre más antiguo de Cataluña."],
+["pals","x",[toA,["walk","WK2","arc","nord",5,1,"La Estació del Nord está a 5 minutos a pie de Arc de Triomf."],["bus","BUSP","nord","pals",165,0,"Bus de Moventis Sarfa hacia Pals (≈ 2 h 45). Uno sale a las 8:30 y llega a las 11:15 (comprobado en noviembre de 2026). Billete aparte."]],"Pals: el recinto medieval del Pedró, la Torre de les Hores y el mirador sobre los arrozales. Peratallada, a unos 7 km: un pueblo de piedra rodeado por un foso.","Peratallada significa «piedra tallada»: el foso y parte de las casas se excavaron en la misma roca."],
+["camprodon","x",[toP,toGV,["bus","BUSCAM","gv","camprodon",120,0,"Bus directo de TEISA desde la Gran Via, 658: unos 3 al día, ≈ 2 h. Billete aparte. Otra opción: R3 hasta Ripoll (con el bus de las obras) y bus TEISA a Camprodon, ≈ 40 min, más o menos cada hora."]],"El Pont Nou, un puente medieval sobre el Ter en el centro del pueblo, el monasterio de Sant Pere y las casas de veraneo del Passeig Maristany.","El compositor Isaac Albéniz nació aquí en 1860."],
+["solsona","x",[toA,["walk","WK2","arc","nord",5,1,"La Estació del Nord está a 5 minutos a pie de Arc de Triomf."],["bus","BUSSOL","nord","solsona",135,0,"Bus directo de ALSA, unos 3 al día (≈ 2 h 15). Billete aparte. Comprueba en la web de ALSA desde qué parada sale."]],"La catedral, con la Mare de Déu del Claustre, el casco antiguo con sus portales y el Museo Diocesano y Comarcal.","En su carnaval se «cuelga» un burro de mentira del campanario: por eso a los de Solsona los llaman «matarrucs»."],
+["llivia","x",[...bus3,["train","R3","garriga","puigcerda",150,1,"Dirección Puigcerdà, hasta el final. Sal muy temprano."],["bus","LLV","puigcerda","llivia",20,0,"Bus de ALSA desde Puigcerdà, ≈ 15–20 min. Pocos al día; billete aparte."]],"La Farmacia Esteva, una de las más antiguas de Europa (hoy museo), la iglesia fortificada y las ruinas del castillo sobre el pueblo.","Llívia es un trozo de España dentro de Francia: el Tratado de los Pirineos (1659) cedió a Francia los «pueblos» de la Cerdaña, y Llívia, que era «villa», se quedó."]
+];
+// ---------- geometry ----------
+const L0=0.40,L1=3.40,A0=40.55,A1=42.56,K=900,CX=Math.cos(41.8*Math.PI/180);
+const W=(L1-L0)*K*CX,H=(A1-A0)*K;
+const P=(la,lo)=>[(lo-L0)*K*CX,(A1-la)*K];
+const xy=k=>typeof k=="string"?P(ST[k][1],ST[k][2]):P(k[1],k[2]);
+const f=n=>n.toFixed(1);
+const ptsOf=a=>a.map(p=>{const [x,y]=xy(p);return f(x)+","+f(y)}).join(" ");
+function seg(line,a,b){const ks=LN[line].ks,i=ks.indexOf(a),j=ks.indexOf(b);return i<=j?ks.slice(i,j+1):ks.slice(j,i+1).reverse()}
+const coast=[[38.2,-0.6],[39.0,-0.25],[39.9,-0.02],[40.40,0.20],[40.62,0.62],[40.70,0.75],[40.83,0.72],[40.88,0.80],[40.97,0.88],[41.03,0.98],[41.06,1.06],[41.07,1.14],[41.082,1.22],[41.095,1.27],[41.115,1.35],[41.135,1.42],[41.175,1.50],[41.18,1.53],[41.19,1.57],[41.205,1.66],[41.215,1.73],[41.228,1.81],[41.24,1.88],[41.255,1.93],[41.265,1.99],[41.285,2.08],[41.325,2.125],[41.37,2.18],[41.40,2.22],[41.44,2.26],[41.475,2.315],[41.505,2.375],[41.528,2.45],[41.562,2.535],[41.592,2.625],[41.62,2.70],[41.66,2.795],[41.685,2.85],[41.703,2.94],[41.74,3.01],[41.82,3.07],[41.86,3.14],[41.95,3.21],[42.05,3.21],[42.12,3.14],[42.20,3.12],[42.255,3.17],[42.24,3.22],[42.255,3.27],[42.28,3.305],[42.32,3.345],[42.35,3.29],[42.345,3.24],[42.37,3.17],[42.44,3.18],[42.62,3.16]];
+const landPts=coast.map(([a,b])=>P(a,b)).concat([P(45.5,3.2),P(45.5,-4),P(38.2,-4)]).map(([x,y])=>f(x)+","+f(y)).join(" ");
+// mountains: [lat,lon,size,snow]
+const MT=[[41.605,1.80,34,0],[41.598,1.825,40,0],[41.592,1.85,30,0],[41.61,1.865,24,0],
+[41.77,2.37,34,0],[41.79,2.42,40,0],[41.76,2.46,28,0],[41.29,1.86,22,0],[41.30,1.92,20,0],[41.42,2.08,18,0],
+[42.47,1.70,46,1],[42.50,1.82,52,1],[42.48,2.02,44,1],[42.47,2.20,54,1],[42.49,2.36,46,1],[42.46,2.52,40,1],[42.42,2.66,34,1],[42.35,2.30,34,0],[42.33,2.48,30,0],[42.30,1.75,32,0],[42.08,2.05,26,0],[41.98,1.90,24,0],[42.12,2.40,28,0]];
+// ---------- svg ----------
+const svg=document.getElementById("m");
+const NS="http://www.w3.org/2000/svg";
+let vb=[0,0,W,H],sel=null,zone="all",anim=null;
+function mtn([la,lo,s,sn]){const [x,y]=P(la,lo);const h=s,b=s*.9;
+ return `<path class="mtn2" d="M${f(x-b)},${f(y)}L${f(x)},${f(y-h)}L${f(x+b)},${f(y)}Z"/><path class="mtn" d="M${f(x-b)},${f(y)}L${f(x)},${f(y-h)}L${f(x+b*.15)},${f(y)}Z"/>`+
+ (sn?`<path class="snow" d="M${f(x-b*.28)},${f(y-h*.69)}L${f(x)},${f(y-h)}L${f(x+b*.28)},${f(y-h*.69)}L${f(x+b*.1)},${f(y-h*.62)}L${f(x-b*.08)},${f(y-h*.72)}Z"/>`:"")}
+function geoLabel(t,la,lo,s){const [x,y]=P(la,lo);return `<text class="geo" x="${f(x)}" y="${f(y)}" font-size="${s}" text-anchor="middle">${t}</text>`}
+const base=()=>{
+ let o=`<defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--land1)"/><stop offset="1" style="stop-color:var(--land2)"/></linearGradient>
+ <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--sea1)"/><stop offset="1" style="stop-color:var(--sea2)"/></linearGradient>
+ <pattern id="wv" width="90" height="46" patternUnits="userSpaceOnUse"><path d="M6 20q8-7 16 0t16 0M52 42q8-7 16 0t16 0" fill="none" style="stroke:var(--wave)" stroke-width="2" stroke-linecap="round" opacity=".55"/></pattern></defs>
+ <rect x="-3000" y="-3000" width="${W+6000}" height="${H+6000}" fill="url(#sg)"/><rect x="-3000" y="-3000" width="${W+6000}" height="${H+6000}" fill="url(#wv)"/>
+ <polygon class="land" points="${landPts}" vector-effect="non-scaling-stroke"/>`;
+ o+=MT.map(mtn).join("");
+ o+=geoLabel("Pirineo",42.24,2.62,30)+geoLabel("Montserrat",41.555,1.75,22)+geoLabel("Montseny",41.725,2.53,22)+geoLabel("Garraf",41.335,1.86,18)+geoLabel("Ebro",41.0,0.70,20)+geoLabel("Collsacabra",42.07,2.50,18);
+ const [sx,sy]=P(41.30,2.55);o+=`<text class="sea-l" x="${f(sx)}" y="${f(sy)}" font-size="34" text-anchor="middle">MAR MEDITERRÁNEO</text>`;
+ o+=`<g class="base" id="base">`+Object.entries(LN).map(([k,l])=>`<polyline class="rail" style="stroke:${l.c}" stroke-width="${l.bus?3:5}" ${l.bus?'stroke-dasharray="4 6"':""} vector-effect="non-scaling-stroke" points="${ptsOf(l.ks)}" ${l.c=="var(--reg)"||["BUSC","BUSF","L1","TAXI","WALKP","WK1","WK2","BUSV"].includes(k)?'opacity=".55"':""}/>`).join("")+`</g>`;
+ o+=`<g id="route"></g><g id="pins"></g><circle id="train" r="8" fill="#fff" stroke="var(--acc)" stroke-width="3" vector-effect="non-scaling-stroke" style="display:none"/>`;
+ svg.innerHTML=o;
+};
+const legsOf=id=>id?D.find(d=>d[0]==id)[2]:[];
+function drawRoute(){
+ const g=document.getElementById("route"),legs=legsOf(sel);
+ document.getElementById("base").classList.toggle("fade",!!sel);
+ if(!sel){cancelAnimationFrame(anim);g.innerHTML="";document.getElementById("train").style.display="none";return}
+ let o="",all=[];
+ legs.forEach(l=>{const ks=seg(l[1],l[2],l[3]);const pts=ptsOf(ks);all.push(...ks.map(xy));
+  const ln=LN[l[1]];
+  o+=`<polyline class="rail" stroke="#fff" stroke-width="12" vector-effect="non-scaling-stroke" points="${pts}" opacity=".9"/><polyline class="rail" style="stroke:${ln.c}" stroke-width="7" ${ln.bus||l[0]=="metro"?'stroke-dasharray="7 7"':""} vector-effect="non-scaling-stroke" points="${pts}"/>`});
+ g.innerHTML=o+`<path id="rp" d="M${all.map(p=>f(p[0])+","+f(p[1])).join("L")}" fill="none" stroke="none"/>`;
+ runTrain();
+}
+function runTrain(){
+ cancelAnimationFrame(anim);const t=document.getElementById("train"),rp=document.getElementById("rp");
+ if(!rp)return;const len=rp.getTotalLength();t.style.display="";
+ if(matchMedia("(prefers-reduced-motion:reduce)").matches){const q=rp.getPointAtLength(len);t.setAttribute("cx",q.x);t.setAttribute("cy",q.y);return}
+ const dur=Math.min(6000,2200+len*4);let st=null;
+ const step=ts=>{st??=ts;let k=((ts-st)%(dur+900))/dur;k=Math.min(1,k);const e=k<.5?2*k*k:1-(-2*k+2)**2/2;
+  const q=rp.getPointAtLength(e*len);t.setAttribute("cx",q.x);t.setAttribute("cy",q.y);t.setAttribute("r",7*sc());anim=requestAnimationFrame(step)};
+ anim=requestAnimationFrame(step);
+}
+const CAKE=(x,y,k)=>`<g class="cake" transform="translate(${f(x)},${f(y)}) scale(${k.toFixed(3)})"><ellipse cy="10" rx="8" ry="2" fill="#0003"/><path d="M-7 1L-5 9H5L7 1Z" fill="#8a5232" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M-4 2.5L-3.4 8M0 2.5V8M4 2.5L3.4 8" stroke="#6b3d22" stroke-width="1"/><path d="M-8.5 2.2Q-10-3.5-5-4.8Q-4.2-10 1.5-9Q8-9.5 8.2-3.8Q10.5-.5 7.8 2.2Z" fill="#f7c6d2" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M-5.5-2Q-1-4 5-2.2" stroke="#fff" stroke-width="1.3" fill="none" opacity=".8"/><circle cy="-10.2" r="2.6" fill="#e63946" stroke="#fff" stroke-width="1"/></g>`;
+const CAKEICON='<svg class="ti" viewBox="-11 -14 22 26" aria-hidden="true"><path d="M-7 1L-5 9H5L7 1Z" fill="#8a5232"/><path d="M-8.5 2.2Q-10-3.5-5-4.8Q-4.2-10 1.5-9Q8-9.5 8.2-3.8Q10.5-.5 7.8 2.2Z" fill="#f7c6d2"/><circle cy="-10.2" r="2.6" fill="#e63946"/></svg>';
+const sc=()=>vb[2]/(svg.clientWidth||600);
+function drawPins(){
+ const s=sc(),fs=13*s,rr=6.5*s,g=document.getElementById("pins");
+ const legs=legsOf(sel),onRoute=new Set(legs.flatMap(l=>[l[2],l[3]]));
+ const boxes=[],out=b=>b[0]<vb[0]||b[2]>vb[0]+vb[2]-58*s||b[1]<vb[1]||b[3]>vb[1]+vb[3]-40*s,hit=b=>out(b)||boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1]);
+ const vis=d=>show(d);
+ const place=(k,name,size,pri)=>{const [x,y]=xy(k),wd=size*.53*name.length,h=size;
+  for(const strict of pri?[1,0]:[1])for(const [tx,ty,an] of [[x+rr*1.7,y+size*.35,"start"],[x-rr*1.7,y+size*.35,"end"],[x,y-rr*1.8,"middle"],[x,y+rr*1.8+size*.8,"middle"]]){
+   const x0=an=="start"?tx:an=="end"?tx-wd:tx-wd/2,b=[x0,ty-h*.8,x0+wd,ty+h*.25];if(strict?!hit(b):!out(b)){boxes.push(b);return [tx,ty,an]}}
+  return pri?[x+rr*1.7,y+size*.35,"start"]:null};
+ const mob=svg.clientWidth<600,few=mob&&s>2.2,MAJ=new Set(["girona","tarragona","lleida","figueres","vic","manresa","sitges","montserrat","blanes","cadaques","puigcerda","tortosa","mataro","olot","ripoll","igualada","salou","nuria","solsona","pals"]);
+ D.forEach(d=>{if(vis(d)||onRoute.has(d[0])){const [x,y]=xy(d[0]);boxes.push([x-rr,y-rr,x+rr,y+rr])}});
+ const stations=[...onRoute].filter(k=>!D.some(d=>d[0]==k)&&k!="badalona");
+ stations.forEach(k=>{const [x,y]=xy(k);boxes.push([x-rr,y-rr,x+rr,y+rr])});
+ const BCN=[null,41.3869,2.170],[cx,cy]=xy(BCN);boxes.push([cx-rr,cy-rr,cx+rr,cy+rr]);
+ let o=`<rect class="bcn" x="${f(cx-rr*.8)}" y="${f(cy-rr*.8)}" width="${f(rr*1.6)}" height="${f(rr*1.6)}" rx="${f(rr*.35)}" stroke-width="${2*s}"/>`;
+ const btx=mob&&!sel?"Badalona":"Badalona · salida",[bx,by]=xy("badalona"),bl=place("badalona",btx,fs*1.08,1);
+ o+=`<g class="st"><circle cx="${f(bx)}" cy="${f(by)}" r="${rr*1.6}" fill="var(--acc)" stroke="#fff" stroke-width="${2.5*s}"/><text x="${f(bl[0])}" y="${f(bl[1])}" text-anchor="${bl[2]}" font-size="${fs*1.08}" stroke-width="${4*s}" style="fill:var(--ink);font-weight:700">${btx}</text></g>`;
+ const sl={};if(sel)sl[sel]=place(sel,ST[sel][0],fs*1.25,1);
+ stations.forEach(k=>{const L=place(k,ST[k][0],fs*.95,0);o+=`<g class="st"><circle cx="${f(xy(k)[0])}" cy="${f(xy(k)[1])}" r="${rr*1.1}" fill="#fff" style="stroke:${LN[legs.find(l=>l[2]==k||l[3]==k)[1]].c}" stroke-width="${3*s}"/>${L?`<text x="${f(L[0])}" y="${f(L[1])}" text-anchor="${L[2]}" font-size="${fs*.95}" stroke-width="${3.5*s}">${ST[k][0]}</text>`:""}</g>`});
+ {const L=place(BCN,"Barcelona",fs*1.05,0);if(L)o+=`<text class="bcn-t" x="${f(L[0])}" y="${f(L[1])}" text-anchor="${L[2]}" font-size="${fs*1.05}" stroke-width="${4*s}">Barcelona</text>`}
+ D.forEach(d=>{if(d[0]!=sel&&onRoute.has(d[0]))sl[d[0]]=place(d[0],ST[d[0]][0],fs,0)});
+ D.forEach(d=>{if(d[0]!=sel&&!onRoute.has(d[0])&&vis(d)&&(!few||MAJ.has(d[0])||Q))sl[d[0]]=place(d[0],ST[d[0]][0],fs,0)});
+ o+=D.map(d=>{const [x,y]=xy(d[0]),on=d[0]==sel,L=sl[d[0]],dim=!vis(d)&&!on&&!onRoute.has(d[0]),sz=on?fs*1.25:fs;
+  return `<g class="pin${dim?" dim":""}" data-id="${d[0]}" tabindex="0" role="button" aria-label="${ST[d[0]][0]}">${on?`<circle class="pulse" cx="${f(x)}" cy="${f(y)}" r="${rr*2}" stroke-width="${3*s}"/>`:""}${zone=="pas"&&PASSET.has(d[0])?CAKE(x,y,rr/6.5*(on?1.75:1.25)):`<circle cx="${f(x)}" cy="${f(y)}" r="${on?rr*1.7:rr}" fill="${Z[d[1]][1]}" stroke="#fff" stroke-width="${(on?3:2)*s}"/>`}<circle cx="${f(x)}" cy="${f(y)}" r="${rr*3}" fill="transparent"/>${L?`<text x="${f(L[0])}" y="${f(L[1])}" text-anchor="${L[2]}" font-size="${sz}" stroke-width="${4*s}" ${on?'style="font-weight:700"':""}>${ST[d[0]][0]}</text>`:""}</g>`}).join("");
+ g.innerHTML=o;
+ const t=document.getElementById("train");if(t)t.setAttribute("r",7*s);
+}
+function setVB(v){if(!svg.clientWidth||!svg.clientHeight)return;const mx=W*1.3,mn=90;v[2]=Math.max(mn,Math.min(mx,v[2]));v[3]=v[2]*svg.clientHeight/svg.clientWidth;
+ v[0]=Math.max(-W*.3,Math.min(W*1.1-v[2]*.5,v[0]));v[1]=Math.max(-H*.3,Math.min(H*1.1-v[3]*.5,v[1]));
+ vb=v;svg.setAttribute("viewBox",vb.map(f).join(" "));drawPins()}
+function fitTo(pts,animate){
+ const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+ const cw=svg.clientWidth||600,ch=svg.clientHeight||500,pl=40,pr=cw<600?76:Math.min(130,cw*.3),pt=40,pb=Math.max(78,(document.getElementById("sum").offsetHeight||0)+28);
+ const s=Math.max((x1-x0)/(cw-pl-pr),(y1-y0)/(ch-pt-pb),180/cw);
+ const w=cw*s,h=ch*s,cx=(x0-pl*s)+w/2-((cw-pl-pr)*s-(x1-x0))/2,cy=(y0-pt*s)+h/2-((ch-pt-pb)*s-(y1-y0))/2;
+ const to=[cx-w/2,cy-h/2,w,h];
+ if(!animate||matchMedia("(prefers-reduced-motion:reduce)").matches){setVB(to);return}
+ const fr=[...vb],t0=performance.now(),dur=700;
+ const tick=t=>{let k=Math.min(1,(t-t0)/dur);k=1-(1-k)**3;setVB(fr.map((v,i)=>v+(to[i]-v)*k));if(k<1)requestAnimationFrame(tick)};requestAnimationFrame(tick);
+}
+const routePts=id=>[xy("badalona"),...legsOf(id).flatMap(l=>seg(l[1],l[2],l[3]).map(xy))];
+
+const SC={
+beach:'<circle cx="150" cy="30" r="13" fill="#ffd166"/><path d="M0 52q25-10 50 0t50 0 50 0 50 0V84H0z" fill="#fff" opacity=".35"/><path d="M0 64q25-9 50 0t50 0 50 0 50 0V84H0z" fill="#fff" opacity=".5"/><path d="M28 50l14-24 2 24z" fill="#fff" opacity=".9"/>',
+light:'<path d="M0 62q25-8 50 0t50 0 50 0 50 0V84H0z" fill="#fff" opacity=".45"/><path d="M92 62l4-40h10l4 40z" fill="#fff"/><path d="M93.5 46h15M95 34h12" stroke="#e8730c" stroke-width="4"/><rect x="95" y="15" width="12" height="8" rx="2" fill="#ffd166"/><path d="M107 19l40-8M95 19l-40-8" stroke="#ffd166" stroke-width="3" opacity=".7"/>',
+castle:'<path d="M0 70q60-26 100-24t100 22V84H0z" fill="#fff" opacity=".4"/><path d="M70 50V30h8v5h7v-5h8v5h7v-5h8v5h7v-5h8v20z" fill="#fff"/><rect x="96" y="40" width="8" height="10" rx="4" fill="#0002"/><path d="M0 76q50-8 100 0t100 0V84H0z" fill="#fff" opacity=".6"/>',
+wine:'<path d="M84 72V38q0-8 6-12V14h8v12q6 4 6 12v34z" fill="#fff"/><g fill="#fff" opacity=".8"><circle cx="130" cy="40" r="6"/><circle cx="142" cy="40" r="6"/><circle cx="136" cy="51" r="6"/><circle cx="124" cy="51" r="6"/><circle cx="148" cy="51" r="6"/><circle cx="130" cy="62" r="6"/><circle cx="142" cy="62" r="6"/></g><path d="M136 34q2-10 10-12" stroke="#fff" stroke-width="3" fill="none"/>',
+mount:'<path d="M10 84l50-62 28 34 26-40 76 68z" fill="#fff" opacity=".55"/><path d="M114 16l14 22-8-3-8 6-6-5z" fill="#fff"/><path d="M60 22l10 12-6-2-6 4-6-3z" fill="#fff"/>',
+city:'<g fill="#fff"><rect x="40" y="40" width="22" height="44" opacity=".6"/><rect x="66" y="26" width="18" height="58" opacity=".9"/><rect x="88" y="46" width="26" height="38" opacity=".7"/><rect x="118" y="32" width="16" height="52" opacity=".85"/><rect x="138" y="50" width="24" height="34" opacity=".6"/></g>',
+train:'<path d="M0 74h200" stroke="#fff" stroke-width="3" opacity=".7"/><path d="M60 70V44h18V34h12v10h40l14 12v14z" fill="#fff"/><circle cx="76" cy="72" r="6" fill="#fff"/><circle cx="104" cy="72" r="6" fill="#fff"/><circle cx="130" cy="72" r="6" fill="#fff"/><circle cx="84" cy="22" r="6" fill="#fff" opacity=".6"/><circle cx="74" cy="12" r="8" fill="#fff" opacity=".4"/>',
+music:'<path d="M90 64a10 8 0 1 1-2-14V18l34-8v42a10 8 0 1 1-2-14V22l-30 7z" fill="#fff"/><path d="M0 76q50-8 100 0t100 0V84H0z" fill="#fff" opacity=".45"/>',
+bridge:'<path d="M20 50h160v8H20z" fill="#fff"/><path d="M60 58q40-46 80 0" fill="none" stroke="#fff" stroke-width="10"/><path d="M0 72q25-6 50 0t50 0 50 0 50 0V84H0z" fill="#fff" opacity=".45"/><path d="M98 34l2-8 2 8z" fill="#fff"/>',
+market:'<path d="M50 30h100l-8 16H58z" fill="#fff"/><path d="M58 30l6 16M78 30l2 16M100 30v16M122 30l-2 16M142 30l-6 16" stroke="#0002" stroke-width="6"/><rect x="62" y="46" width="76" height="26" fill="#fff" opacity=".55"/><circle cx="80" cy="60" r="5" fill="#ffd166"/><circle cx="96" cy="60" r="5" fill="#ff8fa3"/><circle cx="112" cy="60" r="5" fill="#9be15d"/>',
+church:'<path d="M70 84V46l30-18 30 18v38z" fill="#fff" opacity=".85"/><rect x="118" y="18" width="18" height="66" fill="#fff"/><path d="M127 6v10M122 10h10" stroke="#fff" stroke-width="3"/><path d="M92 84V64a8 8 0 0 1 16 0v20z" fill="#0002"/>',
+river:'<g><rect x="40" y="30" width="20" height="36" fill="#ffd166"/><rect x="60" y="22" width="18" height="44" fill="#ff8fa3"/><rect x="78" y="34" width="22" height="32" fill="#fff"/><rect x="100" y="26" width="18" height="40" fill="#f4a261"/><rect x="118" y="36" width="22" height="30" fill="#e9c46a"/><rect x="140" y="28" width="18" height="38" fill="#fff" opacity=".8"/></g><path d="M0 66h200v18H0z" fill="#fff" opacity=".35"/><path d="M20 74q20-4 40 0t40 0 40 0 40 0" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/>'};
+function scene(id,z){const c=Z[z][1];return `<svg viewBox="0 0 200 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="g-${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".62"/></linearGradient></defs><rect width="200" height="84" fill="url(#g-${id})"/>${SC[TH[id]]||SC.city}</svg>`}
+const F={ab:false,t90:false,dia:false,sort:false};
+const FL=[["ab","Solo con el abono"],["t90","Menos de 1 h 30"],["dia","En el día"],["sort","Ordenar por tiempo"]];
+const pass=d=>{const s=stats(d[0]);return (!F.ab||!s.extra)&&(!F.t90||s.mins<=90)&&(!F.dia||!PLAN[d[0]])};
+let Q="";
+const show=d=>Q?norm(ST[d[0]][0]).includes(Q):inZ(d)&&pass(d);
+const LIST=()=>{const l=D.filter(show);return F.sort?[...l].sort((a,b)=>stats(a[0]).mins-stats(b[0]).mins):l};
+const reveal=id=>{const d=D.find(x=>x[0]==id);if(!show(d)){zone="all";F.ab=F.t90=F.dia=false;Q="";document.getElementById("tq").value=""}};
+const smooth=()=>matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth";
+const gmap=q=>`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+const GQ={salou:"PortAventura World, Salou",poblet:"Monestir de Poblet",nuria:"Vall de Núria",montserrat:"Monestir de Montserrat"};
+const townMap=id=>gmap(GQ[id]||ST[id][0]+", Catalunya");
+const shopMap=(n,id)=>/^Ruta/.test(n)?"":`<a class="gm" href="${gmap(n+(/pastis|confiter|bombons/i.test(n)?"":" pastisseria")+", "+ST[id][0])}" target="_blank" rel="noopener">Google Maps</a>`;
+const LOWF=new Set(["REG","R11","R13","R15","R16","R17","REGT","TEI","SAG","ALSA","RIP","BUSF","BUSB","BUSCAM","BUSP","BUSSOL","LLV","BAN","CRN","CRE","IGF","FGC","TAXI","BUS3"]);
+const stats=id=>{const legs=legsOf(id);return{mins:legs.reduce((a,l,i)=>a+l[4]+(i==0||l[0]=="walk"?0:LOWF.has(l[1])?15:5),0),ch:legs.filter((l,i)=>i>0&&l[0]!="walk").length,extra:legs.some(l=>!incl(l))}};
+const hm=m=>m<60?`${m} min`:`${Math.floor(m/60)} h${m%60?" "+String(m%60).padStart(2,"0"):""}`;
+// ---------- icons ----------
+const IC={train:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 10h14M9 21l-2 2M15 21l2 2M8 14h.01M16 14h.01"/></svg>',
+bus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="3" width="16" height="15" rx="2"/><path d="M4 11h16M8 21v-3M16 21v-3M8 15h.01M16 15h.01"/></svg>',
+metro:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18V6l6 8 6-8v12"/></svg>',
+rack:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20l6-10 4 6 3-4 5 8z"/><path d="M15 4l-4 6"/></svg>',
+walk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M10 22l2-7 3 3v4M8 12l3-4 3 1 2 4M11 8l-1 6"/></svg>',
+taxi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V11l2-5h10l2 5v5zM3 11h18M7 19v-3M17 19v-3"/><circle cx="8" cy="13.5" r=".6"/><circle cx="16" cy="13.5" r=".6"/></svg>',
+flag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>'};
+const verb={walk:"Camina",taxi:"Coge un taxi",train:"Coge el tren",bus:"Coge el bus",metro:"Coge el metro",rack:"Sube en el cremallera"};
+const overPts=()=>{const l=LIST();return [xy("badalona"),...(l.length?l:D).map(d=>xy(d[0]))]};
+const fitSel=a=>fitTo(sel?routePts(sel):overPts(),a);
+function unpick(){sel=null;drawRoute();panel();chips();fitSel(true);drawPins()}
+function welcome(){const n=LIST().length,q=[["santpol","Para empezar"],["sitges","Costa sur"],["girona","Con encanto"]];
+ document.getElementById("p").innerHTML=`<h2>Destinos</h2>
+ <p class="wl">Toca una tarjeta o un punto del mapa y verás el camino desde Badalona paso a paso: qué tren coger, dónde cambiar y qué se paga aparte.</p>
+ <p class="wl"><b>${n} destino${n==1?"":"s"}</b> en el mapa con la zona y los filtros que tienes ahora.</p>
+ <div class="wq"><span class="k">Ideas rápidas:</span>${q.map(([id,lb])=>`<button data-q="${id}"><small>${lb}</small>${ST[id][0]} →</button>`).join("")}</div>`;
+ document.getElementById("p2").innerHTML="";
+ document.getElementById("sum").innerHTML=`<span>${n} destino${n==1?"":"s"}</span><span style="color:var(--mut)">Toca uno para ver la ruta</span>`;
+ document.querySelectorAll("#p [data-q]").forEach(b=>b.onclick=()=>{reveal(b.dataset.q);pick(b.dataset.q);chips();toMap()});
+}
+function panel(){
+ if(!sel){welcome();return}
+ const i=D.findIndex(d=>d[0]==sel),d=D[i],legs=d[2];
+ const {mins,ch,extra}=stats(sel);
+ let o=`<span class="zt" style="background:${Z[d[1]][1]}">${Z[d[1]][0]}</span>${MED.has(sel)?` <span class="zt" style="background:#b45309">★ Con encanto</span>`:""}<button class="cls" id="cls">Ver todos ✕</button><h2>${ST[sel][0]}</h2>
+ <div class="tot"><span class="tag pl" style="--pc:${PL[PLAN[sel]||"dia"][1]};margin:0 6px 0 0">${PL[PLAN[sel]||"dia"][0]}</span>≈ <b>${hm(mins)}</b> desde Badalona · ${ch?`${ch} transbordo${ch>1?"s":""}`:"directo"} · ${extra?"<b>parte con billete aparte</b>":"<b>todo con el abono</b>"}</div><ol class="steps">`;
+ legs.forEach(l=>{const ln=LN[l[1]],c=ln.c;
+  o+=`<li class="step${c=="var(--reg)"?" rg":""}" style="--c:${c}"><div class="ic">${IC[l[0]]}</div><div><h4>${l[0]=="walk"?`Camina desde ${ST[l[2]][0]}`:`${verb[l[0]]} <span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}">${ln.n}</span> en ${ST[l[2]][0]}`}</h4>
+  <p>${l[0]=="walk"?"Llegas a":"Bájate en"} <b style="color:var(--ink)">${ST[l[3]][0]}</b> · <span class="mins">≈ ${l[4]} min</span></p><p>${l[6]}</p>
+  <span class="tag ${incl(l)?"in":"out"}">${l[0]=="walk"?"A pie, gratis":l[5]?"Incluido en el abono":incl(l)?"Incluido en tu T-usual":"Billete aparte"}</span></div></li>`});
+ o+=`<li class="step" style="--c:var(--acc)"><div class="ic">${IC.flag}</div><div><h4>Llegas a ${ST[sel][0]}</h4></div></li></ol>
+ ${legs[0][1]=="R1"?`<p class="planb"><b>Plan B si falla la R1:</b> metro L2 desde Badalona Pompeu Fabra hasta Clot (para la R2 Nord, el R11 y la L1) o hasta Passeig de Gràcia (para la R2 Sud y los regionales; Plaça de Catalunya está a 5 minutos a pie). Lo cubre tu T-usual.</p>`:""}
+ ${(()=>{const b=BACK(sel);return `<div class="back b${b.w}"><h3>${["Vuelta","Ojo con la vuelta","Planifica bien la vuelta"][b.w]}</h3><p>${b.t}</p><div class="lk">${b.l.map(([n,u])=>`<a href="${u}" target="_blank" rel="noopener">${n}</a>`).join("")}</div></div>`})()}`;
+ let o2=`<div class="ihr"><h2 class="ih">Qué hacer en ${ST[sel][0]}</h2><a class="gm big" href="${townMap(sel)}" target="_blank" rel="noopener">Abrir en Google Maps</a></div><div class="infog"><div class="arrive"><p><span class="k">Qué ver:</span> ${d[3]}</p><p><span class="k">Dato curioso:</span> ${d[4]}</p>${WALK[sel]?`<p><span class="k">Paseo a pie:</span> ${WALK[sel]}</p>`:""}${TASTE[sel]?`<p><span class="k">Para probar:</span> ${TASTE[sel]}</p>`:""}${FEST[sel]?`<p><span class="k">Mercados y fiestas:</span> ${FEST[sel]}</p>`:""}${CMB[sel]?`<p><span class="k">Combínalo con:</span> ${CMB[sel]}</p>`:""}</div>${PAST[sel]?`<div class="pas"><h3>Pastelerías para visitar</h3><ul>${PAST[sel].map(([n,d])=>`<li><b>${n}</b><span>${d}</span>${shopMap(n,sel)}</li>`).join("")}</ul><small>Mira el horario antes de ir: muchas cierran por la tarde o algún día de la semana.</small></div>`:""}${SLEEP[sel]?`<div class="sleep"><h3>${PLAN[sel]=="noche"?"Dónde dormir":"Si quieres quedarte a dormir"}</h3><p>${SLEEP[sel].t}</p><ul>${SLEEP[sel].l.map(([n,u])=>`<li><a href="${u}" target="_blank" rel="noopener">${n}</a></li>`).join("")}</ul>${SLEEP[sel].l.some(x=>x[1].includes("xanascat"))?"<small>Para los albergues Xanascat necesitas el carnet de alberguista, que se saca online.</small>":""}<small>También puedes comparar precios en Booking o Airbnb.</small></div>`:""}${glosOf(sel).length?`<div class="g2"><span class="k">En el glosario pastelero:</span>${glosOf(sel).map(([g,i])=>`<button data-gl="${i}">${artSvg(g[5])}<span>${g[0]} →</span></button>`).join("")}</div>`:""}</div>
+ <div class="acts"><button class="vis${VIS.has(sel)?" on":""}" id="vb" aria-pressed="${VIS.has(sel)}">${VIS.has(sel)?"✓ Visitado":"Marcar como visitado"} <span class="vc">· llevas ${VIS.size} de ${D.length}</span></button><div class="nav"><button id="pv">← Anterior</button><button id="nx">Siguiente →</button></div></div>`;
+ document.getElementById("p").innerHTML=o;document.getElementById("p2").innerHTML=o2;
+ document.getElementById("sum").innerHTML=`<span>≈ ${hm(mins)}</span><span>${ch?`${ch} transbordo${ch>1?"s":""}`:"Directo"}</span><span style="color:${extra?"var(--x)":"var(--okt)"}">${extra?"+ billete aparte":"Solo abono"}</span><span style="color:${PL[PLAN[sel]||"dia"][1]}">${PL[PLAN[sel]||"dia"][0]}</span>`;
+ const list=LIST(),j=Math.max(0,list.findIndex(x=>x[0]==sel));if(!list.length)list.push(d);
+ document.getElementById("vb").onclick=()=>{VIS.has(sel)?VIS.delete(sel):VIS.add(sel);save();panel();chips()};
+ document.getElementById("cls").onclick=unpick;
+ document.getElementById("pv").onclick=()=>pick(list[(j-1+list.length)%list.length][0]);
+ document.getElementById("nx").onclick=()=>pick(list[(j+1)%list.length][0]);
+}
+function chips(){
+ document.getElementById("tabs").innerHTML='<span class="rl rz">Zona</span>'+[["all","Todos","var(--acc)"],...["pas","n","s","i","med","x"].map(k=>[k,k=="med"?"★ "+Z[k][0]:Z[k][0],Z[k][1]])].map(([k,t,c])=>`<button class="tab" data-z="${k}" aria-pressed="${zone==k}">${k=="pas"?CAKEICON:`<i style="background:${c}"></i>`}${t}</button>`).join("");
+ const dl=document.getElementById("dest");
+ const L=LIST();
+ document.getElementById("filt").innerHTML='<span class="rl">Filtrar</span>'+FL.map(([k,n])=>`<button class="fb${k=="sort"?" srt":""}" data-f="${k}" aria-pressed="${F[k]}">${n}</button>`).join("")+`<span class="fc">${L.length} destino${L.length==1?"":"s"}</span>`;
+ if(!L.length){dl.innerHTML=`<div class="none"><b>${Q?"Ningún pueblo con ese nombre.":"Ningún destino cumple estos filtros."}</b><button id="clr">${Q?"Borrar búsqueda":"Quitar filtros"}</button></div>`;document.getElementById("clr").onclick=()=>{F.ab=F.t90=F.dia=false;Q="";document.getElementById("tq").value="";refresh()};edges();return}
+ dl.innerHTML=L.map(d=>{const s=stats(d[0]);return `<button class="card" data-id="${d[0]}" aria-pressed="${d[0]==sel}">${MED.has(d[0])?'<span class="star">★ Con encanto</span>':""}${VIS.has(d[0])?'<span class="done">✓ Visitado</span>':""}${PAST[d[0]]?'<span class="pz">Pastelería</span>':""}${scene(d[0],d[1])}<div class="cb"><b>${ST[d[0]][0]}</b><div class="cm">≈ ${hm(s.mins)} · ${s.ch?s.ch+" transb.":"directo"}</div><span class="tag ${s.extra?"out":"in"}">${s.extra?"+ billete aparte":"Solo abono"}</span> <span class="tag pl" style="--pc:${PL[PLAN[d[0]]||"dia"][1]}">${PL[PLAN[d[0]]||"dia"][0]}</span></div></button>`}).join("");
+ centerCard(false);edges();
+}
+function refresh(){const l=LIST();if(sel&&!l.some(d=>d[0]==sel)){sel=null;drawRoute()}chips();panel();if(!sel)fitSel(true);drawPins()}
+function centerCard(smooth){const dl=document.getElementById("dest"),a=dl.querySelector(`.card[data-id="${sel}"]`);if(!a)return;
+ dl.scrollTo({left:a.offsetLeft-dl.offsetLeft-(dl.clientWidth-a.offsetWidth)/2,behavior:smooth&&!matchMedia("(prefers-reduced-motion:reduce)").matches?"smooth":"auto"})}
+function markCards(){document.querySelectorAll(".card").forEach(c=>c.setAttribute("aria-pressed",c.dataset.id==sel));centerCard(true)}
+function pick(id){sel=id;drawRoute();panel();fitTo(routePts(id),true);drawPins();if(document.querySelector(`.card[data-id="${id}"]`))markCards();else chips()}
+// ---------- interaction ----------
+const ptr=new Map();let moved=0,pinch=null;
+const toWorld=(cx,cy)=>{const r=svg.getBoundingClientRect();return [vb[0]+(cx-r.left)/r.width*vb[2],vb[1]+(cy-r.top)/r.height*vb[3]]};
+const mh=document.getElementById("mhint");let mhT;const hint=t=>{mh.textContent=t;mh.classList.add("on");clearTimeout(mhT);mhT=setTimeout(()=>mh.classList.remove("on"),1400)};
+const pickAt=(cx,cy)=>{const [wx,wy]=toWorld(cx,cy),s=sc();let best=null,bd=(svg.clientWidth<600?26:16)*s;
+ D.forEach(d=>{const [x,y]=xy(d[0]),dd=Math.hypot(x-wx,y-wy)*(show(d)||d[0]==sel?1:1.6);if(dd<bd){bd=dd;best=d[0]}});if(best)pick(best)};
+let tap=null,multi=false,tz=null;
+const startPinch=e=>{const [a,b]=e.touches,mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;tz={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),vb:[...vb],m:toWorld(mx,my)}};
+const mapbox=document.getElementById("mapbox");
+["gesturestart","gesturechange"].forEach(t=>mapbox.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+mapbox.addEventListener("touchmove",e=>{if(e.touches.length>=2)e.preventDefault()},{passive:false});
+svg.addEventListener("touchstart",e=>{if(e.touches.length>=2){e.preventDefault();multi=true;const [a,b]=e.touches,mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2;tz={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),vb:[...vb],m:toWorld(mx,my)};mh.classList.remove("on")}else{multi=false;tz=null;tap=[e.touches[0].clientX,e.touches[0].clientY]}},{passive:false});
+svg.addEventListener("touchmove",e=>{if(e.touches.length>=2){e.preventDefault();multi=true;if(!tz)startPinch(e);const [a,b]=e.touches,d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),k=tz.d/Math.max(d,1),r=svg.getBoundingClientRect(),mx=(a.clientX+b.clientX)/2,my=(a.clientY+b.clientY)/2,nw=tz.vb[2]*k,nh=tz.vb[3]*k;
+  setVB([tz.m[0]-(mx-r.left)/r.width*nw,tz.m[1]-(my-r.top)/r.height*nh,nw,nh])}
+ else if(e.touches.length==1&&tap&&!multi){const t=e.touches[0],dx=Math.abs(t.clientX-tap[0]),dy=Math.abs(t.clientY-tap[1]);if(dx>14&&dx>dy)hint("Usa dos dedos para mover el mapa")}},{passive:false});
+svg.addEventListener("touchend",e=>{if(e.touches.length<2)tz=null},{passive:true});
+svg.addEventListener("pointerdown",e=>{if(e.pointerType=="touch")return;svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);moved=0;svg.classList.add("drag");
+ if(ptr.size==2){const [a,b]=[...ptr.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),vb:[...vb],m:toWorld((a[0]+b[0])/2,(a[1]+b[1])/2)}}});
+svg.addEventListener("pointermove",e=>{if(!ptr.has(e.pointerId))return;const pr=ptr.get(e.pointerId);
+ if(ptr.size==1){const dx=e.clientX-pr[0],dy=e.clientY-pr[1];moved+=Math.abs(dx)+Math.abs(dy);const s=sc();setVB([vb[0]-dx*s,vb[1]-dy*s,vb[2],vb[3]])}
+ ptr.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptr.size==2&&pinch){moved=99;const [a,b]=[...ptr.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]),k=pinch.d/d;const nw=pinch.vb[2]*k,nh=pinch.vb[3]*k,m=pinch.m;
+  setVB([m[0]-(m[0]-pinch.vb[0])*k,m[1]-(m[1]-pinch.vb[1])*k,nw,nh])}});
+const up=e=>{ptr.delete(e.pointerId);if(ptr.size<2)pinch=null;if(!ptr.size)svg.classList.remove("drag")};
+svg.addEventListener("pointerup",e=>{if(e.pointerType=="touch"){if(tap&&!multi&&Math.hypot(e.clientX-tap[0],e.clientY-tap[1])<10)pickAt(e.clientX,e.clientY);tap=null;return}
+ if(moved<8&&ptr.size==1)pickAt(e.clientX,e.clientY);up(e)});
+svg.addEventListener("pointercancel",up);
+svg.addEventListener("wheel",e=>{if(!(e.ctrlKey||e.metaKey)){hint("Usa Ctrl (o ⌘) + rueda para el zoom");return}e.preventDefault();const k=Math.exp(e.deltaY*.0015),m=toWorld(e.clientX,e.clientY);setVB([m[0]-(m[0]-vb[0])*k,m[1]-(m[1]-vb[1])*k,vb[2]*k,vb[3]*k])},{passive:false});
+svg.addEventListener("keydown",e=>{if(e.key=="Enter"||e.key==" "){const g=e.target.closest(".pin[data-id]");if(g){e.preventDefault();pick(g.dataset.id)}}});
+const zoomBy=k=>{const c=[vb[0]+vb[2]/2,vb[1]+vb[3]/2];setVB([c[0]-vb[2]*k/2,c[1]-vb[3]*k/2,vb[2]*k,vb[3]*k])};
+document.getElementById("zi").onclick=()=>zoomBy(.7);document.getElementById("zo").onclick=()=>zoomBy(1.4);
+document.getElementById("tq").addEventListener("input",e=>{Q=norm(e.target.value.trim());refresh()});
+document.getElementById("rst").onclick=()=>{zone="all";F.ab=F.t90=F.dia=F.sort=false;Q="";document.getElementById("tq").value="";sel=null;drawRoute();chips();panel();fitSel(true);drawPins();document.getElementById("dest").scrollTo({left:0,behavior:smooth()})};
+document.getElementById("zr").onclick=()=>fitSel(true);
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;zone=b.dataset.z;refresh();if(sel)drawPins()});
+const toMap=()=>{if(innerWidth<=780)document.getElementById("mapbox").scrollIntoView({behavior:smooth(),block:"start"})};
+document.getElementById("dest").addEventListener("click",e=>{const b=e.target.closest(".card");if(b){pick(b.dataset.id);toMap()}});
+const edges=()=>document.querySelectorAll(".edge").forEach(el=>el.classList.toggle("more",el.scrollLeft+el.clientWidth<el.scrollWidth-4));
+document.querySelectorAll(".edge").forEach(el=>el.addEventListener("scroll",edges,{passive:true}));
+const scr=k=>{const dl=document.getElementById("dest");dl.scrollBy({left:k*dl.clientWidth*.8,behavior:"smooth"})};
+const hb=document.getElementById("help"),hw=document.getElementById("howto");hb.onclick=()=>{const o=hb.getAttribute("aria-expanded")!="true";hb.setAttribute("aria-expanded",o);hw.classList.toggle("open",o)};
+
+const WHERE={
+xuixo:{t:"En casi cualquier pastelería de Girona. La de referencia es Tornés, ganadora del Concurso Mundial del Xuixo de 2026.",towns:["girona"]},
+catanies:{t:"En Vilafranca del Penedès, en Bombons Cudié, la casa que las creó. También las verás en tiendas de dulces de otras ciudades.",towns:["vilafranca"]},
+merlets:{t:"En Montblanc, en la pastelería Andreu, que los inventó.",towns:["montblanc"]},
+montblanquins:{t:"En las pastelerías de Montblanc.",towns:["montblanc"]},
+carquinyolis:{t:"En casi todas las pastelerías y hornos de Cataluña. En Montblanc son una de las especialidades del pueblo.",towns:["montblanc"],g:1},
+flaona:{t:"En la Garrotxa: en Olot, donde Cacau Pastisseria las hace cada viernes, y en Besalú.",towns:["olot","besalu"]},
+tapons:{t:"Ahora mismo en ningún sitio: Can Cabrisas, la única casa que los hacía, cerró el 31 de octubre de 2026. La familia guarda la receta y podría reabrir en otro local.",towns:["cadaques"]},
+margaritas:{t:"En Puigcerdà, en la pastelería Cosp.",towns:["puigcerda"]},
+panellets:{t:"En todas las pastelerías y hornos de Cataluña durante las semanas anteriores al 1 de noviembre. Vale la pena comparar escaparates en cualquier pueblo.",g:1},
+neules:{t:"En pastelerías y tiendas de toda Cataluña en Navidad.",g:1},
+torro:{t:"En todas las pastelerías en Navidad. El de Agramunt se hace en Agramunt (Lleida), que no está en este mapa porque no tiene tren.",g:1},
+tortell:{t:"En todas las pastelerías los días antes del 6 de enero. Lo normal es encargarlo.",g:1},
+coca:{t:"En pastelerías y hornos de toda Cataluña; la de Sant Joan, los días antes del 23 de junio. En Vilafranca del Penedès tienen fama las suyas.",towns:["vilafranca"],g:1},
+mona:{t:"En todas las pastelerías durante la Semana Santa. Los escaparates con figuras de chocolate se montan unos días antes.",g:1},
+pessic:{t:"En las pastelerías de Vic.",towns:["vic"]},
+braz:{t:"En las pastelerías tradicionales de cualquier ciudad.",g:1},
+crema:{t:"En restaurantes y pastelerías de toda Cataluña.",g:1},
+melimato:{t:"En los puestos de payeses de la entrada al monasterio de Montserrat, y como postre en muchos restaurantes.",towns:["montserrat"]},
+bunyols:{t:"En pastelerías y hornos durante la Cuaresma. Los del Empordà, en Figueres y Cadaqués.",towns:["figueres","cadaques"]},
+massini:{t:"En las pastelerías tradicionales de cualquier ciudad, sobre todo los domingos.",g:1},
+sara:{t:"En las pastelerías tradicionales de cualquier ciudad.",g:1},
+fava:{t:"Pastelerías del mapa con la Fava d'Or (la mejor de su zona) o reconocidas entre las mejores de Cataluña:",towns:["manresa","igualada","girona","llivia","puigcerda","tarragona","vic","reus","lleida"]},
+obrador:{t:"Bombons Cudié, en Vilafranca del Penedès, permite visitar su obrador.",towns:["vilafranca"]},
+forn:{t:"En cualquier pueblo del mapa: fíjate en los rótulos de las tiendas.",g:1}};
+const PIN='<svg class="pin-i" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.6 4.6 0 0 0-4.6 4.6C3.4 9.6 8 14.5 8 14.5s4.6-4.9 4.6-8.4A4.6 4.6 0 0 0 8 1.5z" fill="currentColor"/><circle cx="8" cy="6.1" r="1.7" fill="#fff"/></svg>';
+const placeOf=a=>{const w=(WHERE[a]||{}).towns||[];return w.length==0?"Toda Cataluña":w.length==1?ST[w[0]][0]:w.length==2?ST[w[0]][0]+" y "+ST[w[1]][0]:w.length+" pueblos del mapa"};
+const glosOf=id=>GLOS.map((g,i)=>[g,i]).filter(([g])=>(WHERE[g[5]]?.towns||[]).includes(id));
+let gsel=0;
+const glosList=()=>{const q=norm(document.getElementById("gq").value.trim());return GLOS.map((g,i)=>[g,i]).filter(([g])=>{const w=WHERE[g[5]]||{};return !q||norm(g.slice(0,5).join(" ")+" "+Object.values(g[6]).join(" ")+" "+(w.t||"")+" "+(w.towns||[]).map(x=>ST[x][0]).join(" ")).includes(q)})};
+const artSvg=a=>`<svg viewBox="0 0 120 80" aria-hidden="true"><circle cx="60" cy="44" r="38" fill="light-dark(#fbeee0,#3a2a1e)"/>${ART[a]||""}</svg>`;
+function glosDetail(){const L=glosList(),gd=document.getElementById("gd");
+ if(!L.length){gd.innerHTML='<p class="gempty">No hay ninguna palabra con esa búsqueda.</p>';return}
+ if(!L.some(([,i])=>i==gsel))gsel=L[0][1];
+ const [w,pr,ct,d,id,a,x]=GLOS[gsel],k=L.findIndex(([,i])=>i==gsel);
+ gd.innerHTML=`<div class="gdh"><div class="gdart">${artSvg(a)}${(()=>{const tw=(WHERE[a]||{}).towns||[];return tw.length==1?`<button class="gbadge" data-go="${tw[0]}">${PIN}${ST[tw[0]][0]} →</button>`:tw.length?`<button class="gbadge" data-scroll="1">${PIN}${placeOf(a)} ↓</button>`:`<button class="gbadge all" data-zone="pas">${PIN}Toda Cataluña →</button>`})()}</div><div><span class="ct">${ct}</span><h3>${w}</h3>${pr?`<div class="pr">${pr}</div>`:""}<p class="gdd">${d}</p></div></div>
+ <dl>${x.i?`<dt>Ingredientes</dt><dd>${x.i}</dd>`:""}${x.c?`<dt>${x.i?"Cómo se hace":"Qué es"}</dt><dd>${x.c}</dd>`:""}${x.w?`<dt>Cuándo se come</dt><dd>${x.w}</dd>`:""}${x.t?`<dt>Consejo</dt><dd>${x.t}</dd>`:""}</dl>
+ ${(()=>{const wh=WHERE[a];if(!wh)return"";
+  return `<div class="gwh"><h4>Dónde verlo o comprarlo</h4><p>${wh.t}</p>${(wh.towns||[]).map(tn=>{const s=stats(tn);
+   return `<div class="gt"><div class="gtn"><b>${ST[tn][0]}</b><span>≈ ${hm(s.mins)} desde Badalona · ${s.extra?"+ billete aparte":"solo abono"}</span></div>${PAST[tn]?`<ul>${PAST[tn].map(([n,ds])=>`<li><b>${n}</b> ${ds} ${shopMap(n,tn)}</li>`).join("")}</ul>`:""}<button class="go" data-go="${tn}">Ver la ruta a ${ST[tn][0]} →</button></div>`}).join("")}${wh.g?`<button class="go alt" data-zone="pas">Ver la Ruta pastelera en el mapa →</button>`:""}</div>`})()}
+ <div class="nav"><button id="gpv">← Anterior</button><span class="gn">${k+1} de ${L.length}</span><button id="gnx">Siguiente →</button></div>`;
+ document.getElementById("gpv").onclick=()=>{gsel=L[(k-1+L.length)%L.length][1];glosSel(true)};
+ document.getElementById("gnx").onclick=()=>{gsel=L[(k+1)%L.length][1];glosSel(true)};
+}
+function glosCenter(smooth){const c=document.getElementById("gl"),a=c.querySelector(`[data-g="${gsel}"]`);if(!a)return;
+ c.scrollTo({left:a.offsetLeft-c.offsetLeft-(c.clientWidth-a.offsetWidth)/2,behavior:smooth&&!matchMedia("(prefers-reduced-motion:reduce)").matches?"smooth":"auto"})}
+function glosSel(smooth){document.querySelectorAll("#gl .gw").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g==gsel));glosDetail();glosCenter(smooth)}
+const drawGlos=()=>{const L=glosList();if(L.length&&!L.some(([,i])=>i==gsel))gsel=L[0][1];
+ document.getElementById("gl").innerHTML=L.map(([g,i])=>`<button class="gw" role="listitem" data-g="${i}" aria-pressed="${i==gsel}">${artSvg(g[5])}<b>${g[0]}</b><small>${g[2]}</small><span class="gpl${(WHERE[g[5]]?.towns||[]).length?"":" all"}">${PIN}${placeOf(g[5])}</span></button>`).join("");
+ glosDetail();glosCenter(false)};
+document.getElementById("gq").addEventListener("input",drawGlos);
+document.getElementById("gl").addEventListener("click",e=>{const b=e.target.closest(".gw");if(b){gsel=+b.dataset.g;glosSel(true)}});
+document.getElementById("gd").addEventListener("click",e=>{if(e.target.closest("[data-scroll]")){document.querySelector("#gd .gwh").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"center"});return}
+ const z=e.target.closest("[data-zone]");
+ if(z){zone=z.dataset.zone;F.ab=F.t90=F.dia=false;refresh();
+  document.getElementById("tabs").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"start"});return}
+ const b=e.target.closest("[data-go]");if(!b)return;const id=b.dataset.go;
+ reveal(id);pick(id);chips();document.getElementById("mapbox").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"center"})});
+document.getElementById("p2").addEventListener("click",e=>{const b=e.target.closest("[data-gl]");if(!b)return;
+ document.getElementById("gq").value="";gsel=+b.dataset.gl;drawGlos();
+ document.getElementById("glos").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"start"})});
+drawGlos();
+const MN=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const CAL=[[1,6,"g","tortell","Tortell de Reis · 6 de enero"],[1,0,"g","fava","Mostra Internacional de Pastisseria y premios Fava de Cacau · Sant Vicenç dels Horts, finales de enero"],
+[2,0,"t","sitges","Carnaval de Sitges"],[2,0,"g","coca","Coca de llardons · Dijous Gras"],[2,0,"g","bunyols","Bunyols de Cuaresma"],
+[3,19,"g","crema","Crema catalana · Sant Josep, 19 de marzo"],[3,0,"g","bunyols","Bunyols de Cuaresma"],[3,0,"g","mona","Mona de Pasqua · Pascua (marzo o abril)"],[3,0,"t","vic","Mercat del Ram en Vic · Domingo de Ramos"],
+[4,0,"g","mona","Mona de Pasqua · Pascua (marzo o abril)"],[4,0,"t","montblanc","Setmana Medieval de Montblanc · hacia el 23 de abril"],
+[5,0,"t","girona","Temps de Flors en Girona"],[5,0,"t","tarragona","Tarraco Viva en Tarragona"],[5,0,"t","lleida","Aplec del Caragol en Lleida"],
+[6,23,"g","coca","Coca de Sant Joan · 23 de junio"],[6,0,"t","reus","Fiesta mayor de Reus · finales de junio"],
+[7,0,"t","blanes","Fuegos artificiales de Blanes · finales de julio"],[7,0,"t","mataro","Les Santes en Mataró · finales de julio"],[7,0,"t","tortosa","Festa del Renaixement en Tortosa"],
+[8,0,"t","vilafranca","Fiesta Mayor de Vilafranca, con castells · hacia el 30 de agosto"],[8,0,"t","puigcerda","Fiesta del Lago en Puigcerdà"],
+[9,0,"t","besalu","Feria medieval de Besalú · principios de septiembre"],[9,0,"t","tarragona","Santa Tecla en Tarragona, con castells"],[9,29,"t","rupit","Fiesta mayor de Rupit · 29 de septiembre"],[9,0,"t","vic","Mercat de Música Viva de Vic"],
+[10,0,"t","sitges","Festival de Cine Fantástico de Sitges"],[10,0,"t","sadurni","Cavatast en Sant Sadurní"],[10,0,"t","olot","Fira de Sant Lluc en Olot"],[10,31,"g","panellets","Panellets · Castanyada, 31 de octubre"],
+[11,1,"g","panellets","Panellets · Todos los Santos, 1 de noviembre"],
+[12,5,"t","vic","Mercat Medieval de Vic · 5–8 de diciembre"],[12,0,"g","neules","Neules de Navidad"],[12,0,"g","torro","Torró de Navidad"],[12,0,"t","rupit","Pesebre viviente de Rupit"]];
+const MK=[["cadaques",[1],"Mercado de Cadaqués · lunes"],["vic",[2,6],"Mercado de Vic · martes y sábados"],["granollers",[4],"Mercado de Granollers · jueves"]];
+function drawNow(){const dt=new Date(),m=dt.getMonth()+1,day=dt.getDate(),wd=dt.getDay(),nx=m%12+1;
+ const chip=([mm,dd,k,key,lb],past)=>`<button class="nw${past?" past":""}" ${k=="g"?`data-glk="${key}"`:`data-go="${key}"`}>${k=="g"?artSvg(key):PIN}<span>${lb}${past?" (ya pasó)":""}</span></button>`;
+ const isPast=c=>c[0]==m&&c[1]&&c[1]<day;
+ const grp=mm=>CAL.filter(c=>c[0]==mm).sort((a,b)=>isPast(a)-isPast(b)).map(c=>chip(c,isPast(c))).join("");
+ const mk=today=>MK.filter(x=>(x[1].includes(wd)&&!PLAN[x[0]])==today).map(([id,ds,lb])=>`<button class="nw${today?" hoy":""}" data-go="${id}">${PIN}<span>${today?"Hoy: ":""}${lb}</span></button>`).join("");
+ document.getElementById("now").innerHTML=`<span class="nl">Este mes · ${MN[m-1]}</span>${mk(true)}${grp(m)}<span class="nl nx">Próximo · ${MN[nx-1]}</span>${grp(nx)}<span class="nl nx">Mercados</span>${mk(false)}`;
+}
+document.getElementById("now").addEventListener("click",e=>{const g=e.target.closest("[data-glk]"),b=e.target.closest("[data-go]");
+ if(g){document.getElementById("gq").value="";gsel=GLOS.findIndex(x=>x[5]==g.dataset.glk);drawGlos();document.getElementById("glos").scrollIntoView({behavior:smooth(),block:"start"})}
+ else if(b){reveal(b.dataset.go);pick(b.dataset.go);chips();document.getElementById("mapbox").scrollIntoView({behavior:smooth(),block:"center"})}});
+drawNow();
+{const nw=document.getElementById("now");let dn=null,dragged=false;
+ nw.addEventListener("pointerdown",e=>{if(e.pointerType!="mouse")return;dn=[e.clientX,nw.scrollLeft];dragged=false});
+ addEventListener("pointermove",e=>{if(!dn)return;const dx=e.clientX-dn[0];if(Math.abs(dx)>5){dragged=true;nw.classList.add("drag")}if(dragged)nw.scrollLeft=dn[1]-dx});
+ addEventListener("pointerup",()=>{dn=null;nw.classList.remove("drag")});
+ nw.addEventListener("click",e=>{if(dragged){e.stopPropagation();e.preventDefault();dragged=false}},true);
+ nw.addEventListener("wheel",e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&nw.scrollWidth>nw.clientWidth){const before=nw.scrollLeft;nw.scrollLeft+=e.deltaY;if(nw.scrollLeft!=before)e.preventDefault()}},{passive:false});
+ const by=k=>nw.scrollBy({left:k*nw.clientWidth*.7,behavior:smooth()});
+ document.getElementById("nal").onclick=()=>by(-1);document.getElementById("nar").onclick=()=>by(1);
+ nw.addEventListener("dragstart",e=>e.preventDefault());}
+document.getElementById("filt").addEventListener("click",e=>{const b=e.target.closest(".fb");if(!b)return;F[b.dataset.f]=!F[b.dataset.f];refresh()});
+document.getElementById("al").onclick=()=>scr(-1);document.getElementById("ar").onclick=()=>scr(1);
+const RREG=new Set(["REG","R11","R13","R15","R16","R17","REGT"]);
+{const up=D.filter(d=>{const o=d[2].filter(l=>!incl(l));return o.length&&o.every(l=>RREG.has(l[1]))}).map(d=>ST[d[0]][0]),
+ still=D.filter(d=>d[2].some(l=>!incl(l)&&!RREG.has(l[1]))).map(d=>ST[d[0]][0]);
+ document.getElementById("abonob").innerHTML=`<div class="ab2"><div><h4>Abono de Rodalies <small>· 20 € al mes</small></h4><p>Es el que tienes. Vale en los trenes de Rodalies (R1, R2, R3, R4…) y en los buses de Renfe que sustituyen a la R3. No vale en los regionales de Renfe, FGC, cremalleras ni autobuses de otras empresas.</p></div><div><h4>Abono Único <small>· 60 € cada 30 días</small></h4><p>Suma los regionales de Renfe (Media Distancia) y los autobuses de concesión estatal. Los regionales hay que reservarlos con el código del abono antes de subir. No incluye metro ni FGC.</p></div></div>
+ <p><b>Con el Abono Único quedarían incluidos del todo:</b> ${up.join(", ")}.</p>
+ <p><b>Seguirías pagando aparte algún tramo (FGC, cremallera, bus o taxi) en:</b> ${still.join(", ")}.</p>
+ <p>Compensa si haces varios viajes al mes en regionales: cada ida y vuelta Maçanet–Girona o Sant Vicenç–Tarragona cuesta unos 8–10 €.</p>
+ <p class="chk">Precios de los abonos comprobados en noviembre de 2026. El metro sigue con tu T-usual.</p>`}
+base();
+let lastW=0,rT;new ResizeObserver(()=>{const w=svg.clientWidth;if(!w)return;const big=lastW&&Math.abs(w-lastW)>30;lastW=w;setVB([...vb]);edges();if(big){clearTimeout(rT);rT=setTimeout(()=>fitSel(false),150)}}).observe(svg);
+requestAnimationFrame(()=>{drawRoute();panel();chips();fitSel(false)});
+}
+</script>
+<script>if("serviceWorker" in navigator){addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));}</script>
+</body>
+</html>
