@@ -1174,9 +1174,10 @@ function nextStop(l){const st=legStops(l);if(!st||!ME)return null;const ch=legLL
 let VOZ=null;
 const esVoices=()=>{try{return speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang)).sort((a,b)=>(/ES/i.test(b.lang)-/ES/i.test(a.lang))||(/natural|neural|google|online|enhanced|premium/i.test(b.name)-/natural|neural|google|online|enhanced|premium/i.test(a.name)))}catch(e){return []}};
 function pickVoice(){const vs=esVoices(),n=lsGet("vc-voz","");VOZ=vs.find(v=>v.name==n)||vs[0]||null;return VOZ}
-try{speechSynthesis.onvoiceschanged=()=>{pickVoice();const el=document.getElementById("tpvs");if(el&&!el.options.length)tripRender(true)}}catch(e){}
+try{speechSynthesis.onvoiceschanged=()=>{pickVoice();if(TR&&!document.getElementById("tpvs"))tripRender(true)}}catch(e){}
 function say(t,force){if(!force&&(!TR||TR.voz===false)||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=.92;u.pitch=1.05;
  pickVoice();if(VOZ){u.voice=VOZ;u.lang=VOZ.lang}speechSynthesis.speak(u)}catch(e){}}
+setTimeout(()=>{if(TR&&!document.getElementById("tpvs")&&esVoices().length)tripRender(true)},2500);
 function voiceSel(){const vs=esVoices();if(vs.length<1)return "";const cur=(pickVoice()||{}).name;
  return `<label class="tpw tpvs">Voz: <select id="tpvs">${vs.map(v=>`<option value="${esc(v.name)}"${v.name==cur?" selected":""}>${esc(v.name.replace(/^(Microsoft|Google|Samsung)\s*/i,"").replace(/\s*\(.*?\)\s*/g," ").trim()||v.name)} · ${esc(v.lang)}</option>`).join("")}</select></label><button data-a="vtest">Probar voz</button>`}
 const isLive=l=>l[0]=="train"&&!LIVE_NO.has(l[1])&&RK[l[2]]&&RK[l[3]];
