@@ -1287,7 +1287,7 @@ async function lmInit(){
   locale:{"CooperativeGesturesHandler.WindowsHelpText":"Usa Ctrl + rueda para el zoom","CooperativeGesturesHandler.MacHelpText":"Usa ⌘ + rueda para el zoom","CooperativeGesturesHandler.MobileHelpText":"Usa dos dedos para mover el mapa"}});
  LM.touchZoomRotate.disableRotation();
  LM.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:"© OpenStreetMap · OpenFreeMap"}),"bottom-right");
- LM.on("load",()=>{LMREADY=true;addLayers();lmFit()});
+ LM.on("load",()=>{LMREADY=true;addLayers();lmFit();const at=el.querySelector(".maplibregl-ctrl-attrib");at&&at.classList.remove("maplibregl-compact-show")});
  LM.on("error",e=>{if(!navigator.onLine)document.getElementById("lmoff").hidden=false;else console.warn("mapa",e&&e.error&&e.error.message)});
  LM.on("dragstart",()=>{FOLLOW=false});
  LM.on("click","st-dot",e=>{const f=e.features[0],i=f.properties.id;new maplibregl.Popup({offset:12,maxWidth:"260px"}).setLngLat(f.geometry.coordinates).setHTML(stPop(i)).addTo(LM);stLive(i)});
