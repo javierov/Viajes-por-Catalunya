@@ -1998,6 +1998,7 @@ const trainsHtml=(tr,l)=>tr==null?(liveTT(l)?(RP?'<p class="tpm2">Cargando próx
 let renderQ=null;
 async function tripRender(force){
  const box=document.getElementById("tpb");if(!TR||!box)return;
+ const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#tpb")&&/INPUT|SELECT/.test(ae.tagName)){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),3000);return}
  if(!force&&Date.now()-renderT<1500){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),1600);return}renderT=Date.now();clearTimeout(renderQ);
  const s=stage(),legs=TR.ph=="dest"||TR.ph=="fin"?[]:tripLegs(TR.id,TR.ph);
  document.getElementById("tpt").textContent=ST[TR.id][0];document.getElementById("tpp").textContent=PHN[TR.ph];
@@ -2042,7 +2043,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  else if(a=="end"){tripEnd();return}
  else if(a=="sim"){simGo();return}
  save2();tripTick();tripRender(true)});
-document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
+document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
 
 function showTrip(){const t=document.getElementById("trip");t.hidden=false;t.classList.remove("min");document.getElementById("tpx").setAttribute("aria-expanded","true");document.body.classList.add("tripon")}
 // ---------- simulación (#simular) ----------
