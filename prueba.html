@@ -405,6 +405,10 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .tpl li.cx{opacity:.75}.tpl li.cx b{text-decoration:line-through}
 .trip.min .tpn{cursor:pointer}
 .lm{background:light-dark(#f1f3f6,#1b2647)}
+.tsum{display:grid;justify-items:center;text-align:center;gap:2px;margin:10px 0 6px;padding:12px 10px;border-radius:14px;background:light-dark(#eef3ff,#16213a);border:1.5px solid light-dark(#c7d6fb,#2b3d66)}
+.tsl{font-size:13px;font-weight:600;color:var(--mut)}
+.tsd{font:700 34px/1 "Barlow Condensed",Barlow,sans-serif}
+.tst{font-size:16px}.tsx{font-size:14px;color:var(--mut)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1125,11 +1129,12 @@ const TALLER=/claudeusercontent|claude\.ai/.test(location.hostname);
 const SIMU=/simular/.test(location.hash)||TALLER;
 const kLL=k=>Array.isArray(k)?[k[1],k[2]]:RK[k]&&RS[RK[k]]?[RS[RK[k]][1],RS[RK[k]][2]]:[ST[k][1],ST[k][2]];
 const hav=(a,b)=>{const R=6371000,r=Math.PI/180,dLa=(b[0]-a[0])*r,dLo=(b[1]-a[1])*r,s=Math.sin(dLa/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(s))};
-const LLC={};
+const LLC={},LSC={};
 // tramo en tren: pasa por las estaciones reales de esa línea que quedan entre la salida y la llegada
 function legLL(l){const k=l.slice(0,4).join("|");if(LLC[k])return LLC[k];let r=null;
  if(l[0]=="train"&&RK[l[2]]&&RK[l[3]]){const lines=realLines(l);if(lines.length){const A=kLL(l[2]),B=kLL(l[3]),ab=hav(A,B);
   const mid=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).map(i=>{const p=[RS[i][1],RS[i][2]];return {p,da:hav(A,p),db:hav(p,B)}}).filter(o=>o.da+o.db<ab*1.18+800).sort((x,y)=>x.da-y.da).map(o=>o.p);
+  const ids=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).filter(i=>{const p=[RS[i][1],RS[i][2]];return hav(A,p)+hav(p,B)<ab*1.18+800});LSC[k]=ids;
   if(mid.length)r=[A,...mid,B]}}
  return LLC[k]=r||seg(l[1],l[2],l[3]).map(kLL)}
 const isLive=l=>l[0]=="train"&&!LIVE_NO.has(l[1])&&RK[l[2]]&&RK[l[3]];
@@ -1258,12 +1263,14 @@ function addLayers(){
  const m=LM,dk=isDark();
  m.addSource("route",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addSource("ends",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+ m.addSource("stops",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addSource("st",{type:"geojson",data:stGeo()});
  m.addSource("me",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addSource("acc",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addLayer({id:"route-halo",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#0b1226":"#ffffff","line-width":10,"line-opacity":.9}});
  m.addLayer({id:"route-solid",type:"line",source:"route",filter:["!=",["get","dash"],1],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["get","c"],"line-width":5.5}});
  m.addLayer({id:"route-dash",type:"line",source:"route",filter:["==",["get","dash"],1],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["get","c"],"line-width":5,"line-dasharray":[1.2,1.6]}});
+ m.addLayer({id:"stops",type:"circle",source:"stops",paint:{"circle-radius":["interpolate",["linear"],["zoom"],8,2.5,13,5],"circle-color":"#ffffff","circle-stroke-color":["get","c"],"circle-stroke-width":2}});
  m.addLayer({id:"st-dot",type:"circle",source:"st",minzoom:9,paint:{"circle-radius":["interpolate",["linear"],["zoom"],9,3,13,7,16,10],"circle-color":"#e8730c","circle-stroke-color":"#ffffff","circle-stroke-width":["interpolate",["linear"],["zoom"],9,1,14,2]}});
  m.addLayer({id:"st-r",type:"symbol",source:"st",minzoom:12.5,layout:{"text-field":"R","text-font":["Noto Sans Bold"],"text-size":["interpolate",["linear"],["zoom"],12.5,8,16,12],"text-allow-overlap":true,"text-ignore-placement":true},paint:{"text-color":"#ffffff"}});
  m.addLayer({id:"st-name",type:"symbol",source:"st",minzoom:12,layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],"text-size":13,"text-offset":[0,1.25],"text-anchor":"top","text-optional":true},paint:{"text-color":dk?"#e8edf9":"#1f2937","text-halo-color":dk?"#1b2647":"#ffffff","text-halo-width":1.6}});
@@ -1299,6 +1306,8 @@ function lmRoute(){
  if(id){legsOf(id).forEach(l=>{const ln=LN[l[1]],c=lineColor(ln.c);F.push({type:"Feature",properties:{c,dash:ln.bus||l[0]=="metro"||l[0]=="walk"?1:0},geometry:{type:"LineString",coordinates:legLL(l).map(p=>[p[1],p[0]])}});
   [l[2],l[3]].forEach(k=>{if(k!=id){const p=kLL(k);E.push({type:"Feature",properties:{c,d:0,n:ST[k][0]},geometry:{type:"Point",coordinates:[p[1],p[0]]}})}})});
   const p=kLL(id);E.push({type:"Feature",properties:{c:"#e8730c",d:1,n:ST[id][0]},geometry:{type:"Point",coordinates:[p[1],p[0]]}})}
+ const S=[];if(id)legsOf(id).forEach(l=>{legLL(l);const ids=LSC[l.slice(0,4).join("|")]||[],c=lineColor(LN[l[1]].c);ids.forEach(i=>S.push({type:"Feature",properties:{c},geometry:{type:"Point",coordinates:[RS[i][2],RS[i][1]]}}))});
+ LM.getSource("stops").setData({type:"FeatureCollection",features:S});
  LM.getSource("route").setData({type:"FeatureCollection",features:F});LM.getSource("ends").setData({type:"FeatureCollection",features:E})}
 function lmMe(){if(!LM||!LMREADY||!ME)return;LM.getSource("me").setData({type:"Feature",geometry:{type:"Point",coordinates:[ME.ll[1],ME.ll[0]]}});
  LM.getSource("acc").setData(circleGeo(ME.ll,Math.min(ME.acc,500)));if(FOLLOW&&VIEW=="gps"&&TR)LM.easeTo({center:[ME.ll[1],ME.ll[0]],duration:600})}
@@ -1383,11 +1392,14 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&TR){wakeO
 // ---------- hoja del viaje ----------
 let LIVEC={},renderT=0;
 const lineB=l=>{const ln=LN[l[1]],c=ln.c;return `<span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}" style="--c:${c}">${ln.n}</span>`};
+const durTxt=m=>m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")}`;
+const sumCard=(t,lbl)=>{if(!t)return "";let d=toMin(t.arr)-toMin(t.h);if(d<0)d+=1440;return `<div class="tsum"><span class="tsl">${lbl||"Próximo tren"}</span><b class="tsd">${durTxt(d)}</b><span class="tst">Salida <b>${t.h}</b> → Llegada <b>${t.arr}</b></span>${t.dst?`<span class="tsx">Destino ${esc(t.dst)}${t.a?` · andén ${esc(t.a)}`:""}</span>`:""}</div>`};
 const trainsHtml=(tr,l)=>tr==null?(liveTT(l)?(RP?'<p class="tpm2">Cargando próximos trenes…</p>':""):""):!tr.length?'<p class="tpm2">No encuentro trenes en las próximas horas. Mira la app de Renfe Cercanías.</p>':
- `<p class="tpk">Próximos trenes</p><ul class="tpl">${tr.map(t=>t.x?`<li class="cx"><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span><em class="lt">Cancelado</em><small>Este tren no sale</small></li>`:`<li><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span>${t.a?`<em>Andén ${esc(t.a)}</em>`:""}<small>${t.r?`<i class="lt">${t.r} min tarde</i> · `:""}llega ${t.arr}</small></li>`).join("")}</ul>`;
+ sumCard(tr.find(t=>!t.x))+`<p class="tpk">Próximos trenes</p><ul class="tpl">${tr.map(t=>t.x?`<li class="cx"><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span><em class="lt">Cancelado</em><small>Este tren no sale</small></li>`:`<li><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span>${t.a?`<em>Andén ${esc(t.a)}</em>`:""}<small>${t.r?`<i class="lt">${t.r} min tarde</i> · `:""}llega ${t.arr}</small></li>`).join("")}</ul>`;
 let renderQ=null;
 async function tripRender(force){
  const box=document.getElementById("tpb");if(!TR||!box)return;
+ const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#tpb")&&/INPUT|SELECT/.test(ae.tagName)){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),3000);return}
  if(!force&&Date.now()-renderT<1500){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),1600);return}renderT=Date.now();clearTimeout(renderQ);
  const s=stage(),legs=TR.ph=="dest"||TR.ph=="fin"?[]:tripLegs(TR.id,TR.ph);
  document.getElementById("tpt").textContent=ST[TR.id][0];document.getElementById("tpp").textContent=PHN[TR.ph];
@@ -1409,6 +1421,7 @@ async function tripRender(force){
   ${rt&&rt.last?`<p class="tplast">Último tren de vuelta hoy: <b>${rt.last.s}</b> desde ${esc(ST[rt.from][0])}${rt.k==0?"":" (después de los primeros tramos)"}, llega a ${esc(ST[rt.to][0])} a las ${rt.last.l}.</p>`:`<p class="tplast">${esc(b.t)}</p>`}
   <p class="tpk">¿A qué hora quieres volver? Te aviso cuando sea hora de ir a la estación.</p>
   <div class="tpo">${opts.map(o=>`<button data-bk="${o.s}" aria-pressed="${TR.back==o.s}">${o.s}</button>`).join("")}<label>Otra: <input type="time" id="tpbt" value="${TR.back||""}"></label></div>
+  ${TR.back&&rt?(()=>{const v=[...(rt.next||[]),rt.last].find(x=>x&&x.s==TR.back);return v?sumCard({h:v.s,arr:v.l,dst:"Badalona"},"Tu tren de vuelta"):""})():""}
   ${TR.back?`<p class="tpok">${TR.leave==null?`Aviso puesto para el tren de las ${TR.back}.`:TR.leave<=nowMin()?`Ya es hora de ir a la estación: el tren sale a las ${TR.back}.`:`Sal hacia la estación a las ${hmm(TR.leave)}${TR.leave-20>nowMin()?`. Te aviso a las ${hmm(TR.leave-20)} y a las ${hmm(TR.leave)}`:`. Te aviso a esa hora`}.`}</p>`:""}
   <div class="tpa"><button class="tpbtn" data-a="back">Volver ahora</button></div>`}
  else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p><div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
@@ -1432,7 +1445,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  else if(a=="end"){tripEnd();return}
  else if(a=="sim"){simGo();return}
  save2();tripTick();tripRender(true)});
-document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
+document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
 
 function showTrip(){const t=document.getElementById("trip");t.hidden=false;t.classList.remove("min");document.getElementById("tpx").setAttribute("aria-expanded","true");document.body.classList.add("tripon")}
 // ---------- simulación (#simular) ----------
