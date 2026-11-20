@@ -1167,9 +1167,9 @@ function legStops(l){const k=l.slice(0,4).join("|");if(LSO[k])return LSO[k];cons
  return LSO[k]=st}
 // ¿cuál es la próxima parada? (nunca retrocede dentro del mismo tramo)
 function nextStop(l){const st=legStops(l);if(!st||!ME)return null;const ch=legLL(l),pi=onPath(ch,ME.ll),pr=pi.tot-pi.rem;
- let i=st.findIndex((o,j)=>j>0&&o.cum>pr+150);if(i<0)i=st.length-1;const k=`${TR.ph}-${TR.li}`;
+ let i=st.findIndex((o,j)=>j>0&&o.cum>pr-250);if(i<0)i=st.length-1;const k=`${TR.ph}-${TR.li}`;
  if(TR.nsk!==k){TR.nsk=k;TR.ns=0}if(i<TR.ns)i=TR.ns;
- const at=st.findIndex((o,j)=>j>0&&j<st.length-1&&Math.abs(o.cum-pr)<=150&&hav(ME.ll,o.ll)<400);
+ const at=i>0&&i<st.length-1&&Math.abs(st[i].cum-pr)<=250&&hav(ME.ll,st[i].ll)<450?i:-1;
  return {st,i,at}}
 let VOZ=null;
 const esVoices=()=>{try{return speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang)).sort((a,b)=>(/ES/i.test(b.lang)-/ES/i.test(a.lang))||(/natural|neural|google|online|enhanced|premium/i.test(b.name)-/natural|neural|google|online|enhanced|premium/i.test(a.name)))}catch(e){return []}};
@@ -1474,7 +1474,8 @@ async function tripRender(force){
   h=`<p class="tpk">Paso ${TR.li+1} de ${legs.length}</p><h3>${l[0]=="walk"?"Caminando":`Vas en ${({train:"el tren",metro:"el metro",bus:"el bus",rack:"el cremallera",taxi:"taxi"})[l[0]]} ${lineB(l)}`} hacia ${esc(ST[l[3]][0])}</h3>
   ${eta!=null?`<div class="teta"><div><span>Tiempo restante</span><b>${durTxt(eta)}</b></div><div><span>Hora de llegada</span><b>${hmm(nowMin()+eta)}</b></div></div>`:""}
   ${(()=>{const ns=l[0]=="train"&&nextStop(l);if(!ns)return "";const o=ns.st[ns.i],left=ns.st.length-1-ns.i;
-   return `<div class="nxs${o.fin?" fin":""}"><span>${ns.at>0?`Ahora en ${esc(ns.st[ns.at].n)} · `:""}${o.fin?"Próxima parada: ¡te bajas!":"Próxima parada"}</span><b>${esc(o.n)}</b>${o.fin?"":`<small>Te bajas en <b>${esc(ST[l[3]][0])}</b> · ${left==1?"1 parada después":`${left} paradas después`}</small>`}</div>`})()}
+   return ns.at>0?`<div class="nxs"><span>Estás en la estación</span><b>${esc(o.n)}</b><small>Después: ${esc(ns.st[ns.i+1].n)} · te bajas en <b>${esc(ST[l[3]][0])}</b></small></div>`
+    :`<div class="nxs${o.fin?" fin":""}"><span>${o.fin?"Próxima parada: ¡te bajas!":"Próxima parada"}</span><b>${esc(o.n)}</b>${o.fin?"":`<small>Te bajas en <b>${esc(ST[l[3]][0])}</b> · ${left==1?"1 parada después":`${left} paradas después`}</small>`}</div>`})()}
   <p>${s.rem!=null?`Faltan <b>${mtxt(s.rem)}</b>${eta!=null?` · ≈ ${eta} min`:""}. `:""}Te aviso antes de bajar.${s.off>2500?' <i class="lt">Parece que no vas por esta ruta.</i>':""}</p>
   ${stopsHtml(l,true)}
   ${legs[TR.li+1]?`<p class="tpm2">Después: ${legs[TR.li+1][0]=="walk"?"a pie":verb[legs[TR.li+1][0]].toLowerCase()+" "+lineB(legs[TR.li+1])} hasta ${esc(ST[legs[TR.li+1][3]][0])}.</p>`:""}
