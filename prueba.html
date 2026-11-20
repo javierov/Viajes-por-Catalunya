@@ -1244,10 +1244,10 @@ async function mlStyle(){
  st.layers=st.layers.filter(l=>!/ne2|hillshade|shield|oneway|label_country|label_state|boundary/.test(l.id));
  for(const l of st.layers){const id=l.id;
   if(l.type=="background")set(l,"background-color",p.bg);
-  else if(id=="water")set(l,"fill-color",p.water);
-  else if(/park|wood|glacier|ice/.test(id))set(l,"fill-color",p.park);
-  else if(/residential/.test(id))set(l,"fill-color",p.res);
-  else if(id=="building")set(l,"fill-color",p.bld);
+  else if(l.type=="fill"&&id=="water")set(l,"fill-color",p.water);
+  else if(l.type=="fill"&&/park|wood|glacier|ice_shelf/.test(id))set(l,"fill-color",p.park);
+  else if(l.type=="fill"&&/residential/.test(id))set(l,"fill-color",p.res);
+  else if(l.type=="fill"&&id=="building")set(l,"fill-color",p.bld);
   else if(/waterway/.test(id)&&l.type=="line")set(l,"line-color",p.water);
   else if(/railway/.test(id)&&l.type=="line"){set(l,"line-color",p.rail);if(!/dash/.test(id))set(l,"line-width",["interpolate",["linear"],["zoom"],8,1,13,2.2,17,4]);set(l,"line-opacity",.9)}
   else if(/motorway/.test(id)&&l.type=="line")set(l,"line-color",/casing/.test(id)?p.casing:p.mw);
@@ -1288,7 +1288,7 @@ async function lmInit(){
  LM.touchZoomRotate.disableRotation();
  LM.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:"© OpenStreetMap · OpenFreeMap"}),"bottom-right");
  LM.on("load",()=>{LMREADY=true;addLayers();lmFit()});
- LM.on("error",e=>{if(!navigator.onLine)document.getElementById("lmoff").hidden=false});
+ LM.on("error",e=>{if(!navigator.onLine)document.getElementById("lmoff").hidden=false;else console.warn("mapa",e&&e.error&&e.error.message)});
  LM.on("dragstart",()=>{FOLLOW=false});
  LM.on("click","st-dot",e=>{const f=e.features[0],i=f.properties.id;new maplibregl.Popup({offset:12,maxWidth:"260px"}).setLngLat(f.geometry.coordinates).setHTML(stPop(i)).addTo(LM);stLive(i)});
  LM.on("mouseenter","st-dot",()=>LM.getCanvas().style.cursor="pointer");LM.on("mouseleave","st-dot",()=>LM.getCanvas().style.cursor="");
