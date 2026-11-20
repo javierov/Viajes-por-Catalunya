@@ -1843,7 +1843,8 @@ async function loadAv(){const j=await live("av",{},6e5);if(j&&j.avisos){AV=j.avi
 function realLines(l){if(/^BUS[3V]$/.test(l[1]))return ["R3"];const a=RK[l[2]]&&RS[RK[l[2]]],b=RK[l[3]]&&RS[RK[l[3]]];if(!a||!b)return [];
  const c=a[3].filter(x=>b[3].includes(x));return LN[l[1]]&&c.includes(l[1])?[l[1]]:c}
 const ALIAS={R2:["R2","R2N","R2S"]};
-function avOf(legs){if(!AV)return [];const ls=new Set(legs.flatMap(realLines));return AV.filter(a=>a.l.some(x=>ls.has(x)||(ALIAS[x]||[]).some(y=>ls.has(y)&&x==y)))}
+// un aviso afecta a un tramo si cubre todas las líneas que pueden hacer ese tramo
+function avOf(legs){if(!AV)return [];return AV.filter(a=>legs.some(l=>{const c=realLines(l);return c.length&&c.every(x=>a.l.includes(x))}))}
 const fdate=f=>f?f.split("-").reverse().slice(0,2).join("/"):"";
 function avHtml(v,small){if(!v.length)return "";return `<div class="avs${small?" sm":""}"><b>⚠ ${v.length==1?"Aviso":"Avisos"} de Rodalies en esta ruta</b>${v.map(a=>`<details><summary><span class="avl">${a.l.map(esc).join(" ")}</span> ${esc(a.t.length>120?a.t.slice(0,118)+"…":a.t)}</summary><p>${esc(a.t)}</p></details><small>Desde el ${fdate(a.f)}</small>`).join("")}<p class="avn">Antes de salir, mira también la app de Renfe Cercanías.</p></div>`}
 function cardAv(){if(!AV)return;document.querySelectorAll(".card[data-id]").forEach(c=>{const id=c.dataset.id;if(!D.some(d=>d[0]==id))return;const has=avOf(legsOf(id)).length;let m=c.querySelector(".cav");if(has&&!m){const cm=c.querySelector(".cm");cm&&cm.insertAdjacentHTML("afterend",'<span class="cav">⚠ Aviso Rodalies</span>')}else if(!has&&m)m.remove()})}
