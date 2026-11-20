@@ -1460,7 +1460,7 @@ async function tripRender(force){
  const box=document.getElementById("tpb");if(!TR||!box)return;
  const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#tpb")&&/INPUT|SELECT/.test(ae.tagName)){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),3000);return}
  if(!force&&Date.now()-renderT<1500){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),1600);return}renderT=Date.now();clearTimeout(renderQ);
- if(lastPh!==TR.ph){const f=lastPh!==null;lastPh=TR.ph;if(f&&sel==TR.id)panel()}
+ if(lastPh!==TR.ph){const f=lastPh!==null;lastPh=TR.ph;if(sel==TR.id){if(f)panel();try{runTrain();drawPins()}catch(e){}}}
  const s=stage(),legs=TR.ph=="dest"||TR.ph=="fin"?[]:tripLegs(TR.id,TR.ph);
  document.getElementById("tpt").textContent=ST[TR.id][0];document.getElementById("tpp").textContent=PHN[TR.ph];
  let h="";const l=s.l;
@@ -1538,6 +1538,17 @@ function simGo(){
  if(AV){const v=avOf(legsOf(sel));if(v.length)document.querySelector("#p .gob").insertAdjacentHTML("afterend",avHtml(v))}
  document.getElementById("gob").onclick=()=>{if(TR&&TR.id==sel){showTrip();tripRender(true);return}
   const bt=document.getElementById("gob");if(TR&&!bt.dataset.ok){bt.dataset.ok=1;bt.textContent=`Ya vas a ${ST[TR.id][0]}. Toca otra vez para cambiar`;setTimeout(()=>{if(bt.isConnected){delete bt.dataset.ok;bt.textContent="▶ Empezar viaje"}},5000);return}tripStart(sel)}}}}
+// en la vuelta, el trenecito del mapa va hacia Badalona
+const backDir=()=>TR&&TR.id==sel&&(TR.ph=="vuelta"||TR.ph=="fin");
+runTrain=function(){
+ cancelAnimationFrame(anim);const t=document.getElementById("train"),rp=document.getElementById("rp");
+ if(!rp)return;const len=rp.getTotalLength();t.style.display="";const rv=backDir();
+ if(matchMedia("(prefers-reduced-motion:reduce)").matches){const q=rp.getPointAtLength(rv?0:len);t.setAttribute("cx",q.x);t.setAttribute("cy",q.y);return}
+ const dur=Math.min(6000,2200+len*4);let st=null;
+ const step=ts=>{st??=ts;let k=((ts-st)%(dur+900))/dur;k=Math.min(1,k);const e=k<.5?2*k*k:1-(-2*k+2)**2/2;
+  const q=rp.getPointAtLength((rv?1-e:e)*len);t.setAttribute("cx",q.x);t.setAttribute("cy",q.y);t.setAttribute("r",7*sc());anim=requestAnimationFrame(step)};
+ anim=requestAnimationFrame(step)};
+{const _dp=drawPins;drawPins=function(){_dp.apply(this,arguments);if(backDir())document.querySelectorAll("#pins text").forEach(x=>{if(x.textContent=="Badalona · salida")x.textContent="Badalona · llegada"})}}
 {const _dr=drawRoute;drawRoute=function(){_dr();lmRoute();if(VIEW=="gps"&&LM&&!TR)lmFit()}}
 {const zi=document.getElementById("zi"),zo=document.getElementById("zo"),zr=document.getElementById("zr"),a=zi.onclick,b=zo.onclick,c=zr.onclick;
  zi.onclick=()=>VIEW=="gps"&&LM?LM.zoomIn():a();zo.onclick=()=>VIEW=="gps"&&LM?LM.zoomOut():b();zr.onclick=()=>VIEW=="gps"&&LM?(FOLLOW=true,lmFit()):c()}
