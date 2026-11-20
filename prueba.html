@@ -1174,10 +1174,9 @@ function nextStop(l){const st=legStops(l);if(!st||!ME)return null;const ch=legLL
 let VOZ=null;
 const esVoices=()=>{try{return speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang)).sort((a,b)=>(/ES/i.test(b.lang)-/ES/i.test(a.lang))||(/natural|neural|google|online|enhanced|premium/i.test(b.name)-/natural|neural|google|online|enhanced|premium/i.test(a.name)))}catch(e){return []}};
 function pickVoice(){const vs=esVoices(),n=lsGet("vc-voz","");VOZ=vs.find(v=>v.name==n)||vs[0]||null;return VOZ}
-try{speechSynthesis.onvoiceschanged=()=>{pickVoice();if(TR&&!document.getElementById("tpvs"))tripRender(true)}}catch(e){}
+try{speechSynthesis.onvoiceschanged=()=>{pickVoice();0}}catch(e){}
 function say(t,force){if(!force&&(!TR||TR.voz===false)||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=.92;u.pitch=1.05;
  pickVoice();if(VOZ){u.voice=VOZ;u.lang=VOZ.lang}speechSynthesis.speak(u)}catch(e){}}
-setTimeout(()=>{if(TR&&!document.getElementById("tpvs")&&esVoices().length)tripRender(true)},2500);
 function voiceSel(){const vs=esVoices();if(vs.length<1)return "";const cur=(pickVoice()||{}).name;
  return `<label class="tpw tpvs">Voz: <select id="tpvs">${vs.map(v=>`<option value="${esc(v.name)}"${v.name==cur?" selected":""}>${esc(v.name.replace(/^(Microsoft|Google|Samsung)\s*/i,"").replace(/\s*\(.*?\)\s*/g," ").trim()||v.name)} · ${esc(v.lang)}</option>`).join("")}</select></label><button data-a="vtest">Probar voz</button>`}
 const isLive=l=>l[0]=="train"&&!LIVE_NO.has(l[1])&&RK[l[2]]&&RK[l[3]];
@@ -1493,7 +1492,7 @@ async function tripRender(force){
  else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p><div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
- h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${TR.voz!==false?voiceSel():""}${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
+ h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
  box.innerHTML=h;lmNext();
  if((s.k=="board"||s.k=="go")&&liveTT(l)){const k=l[2]+">"+l[3];document.getElementById("tptr").innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
   if(!LIVEC[k]||Date.now()-LIVEC[k].t>45e3){LIVEC[k]={t:Date.now(),v:LIVEC[k]&&LIVEC[k].v};const v=await nextTrains(l);LIVEC[k]={t:Date.now(),v};const el=document.getElementById("tptr");if(el)el.innerHTML=trainsHtml(v,l)}}
