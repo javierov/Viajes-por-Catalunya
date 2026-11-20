@@ -1064,6 +1064,7 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .avs.sm{margin:10px 0 0}
 .cav{display:inline-block;margin:2px 0 4px;font:700 12.5px Barlow,sans-serif;background:light-dark(#fde8e6,#3a1714);color:light-dark(#b42318,#fca5a5);border-radius:6px;padding:1px 7px}
 .tpl li.cx{opacity:.75}.tpl li.cx b{text-decoration:line-through}
+.trip.min .tpn{cursor:pointer}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1937,8 +1938,8 @@ function tripStart(id){
  TR={id,ph:"ida",li:0,on:null,seen:null,t0:Date.now(),al:{},back:null,wl:true};
  // si ya está en una estación de la ruta, empezar desde ahí
  if(ME){const legs=tripLegs(id,"ida");for(let j=legs.length-1;j>=0;j--){if(hav(ME.ll,kLL(legs[j][2]))<600){TR.li=j;break}}}
- save2();askNotif();gpsOn();wakeOn();document.getElementById("trip").hidden=false;document.body.classList.add("tripon");
- if(sel!=id)pick(id);lmRoute();if(VIEW!="gps")setView("gps");else lmFit();tripTick();tripRender(true)}
+ save2();askNotif();gpsOn();wakeOn();showTrip();
+ if(sel!=id)pick(id);else panel();lmRoute();if(VIEW!="gps")setView("gps");else lmFit();tripTick();tripRender(true)}
 function tripEnd(){TR=null;save2();wakeOff();simStop();document.getElementById("trip").hidden=true;document.body.classList.remove("tripon");lmRoute();chipMe();panel()}
 function stage(){
  if(!TR)return null;if(TR.ph=="dest")return {k:"dest"};if(TR.ph=="fin")return {k:"fin"};
@@ -2043,6 +2044,7 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  save2();tripTick();tripRender(true)});
 document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
 
+function showTrip(){const t=document.getElementById("trip");t.hidden=false;t.classList.remove("min");document.getElementById("tpx").setAttribute("aria-expanded","true");document.body.classList.add("tripon")}
 // ---------- simulación (#simular) ----------
 let simT=null,simP=[],simI=0;
 function simStop(){clearInterval(simT);simT=null}
@@ -2057,13 +2059,14 @@ function simGo(){
 {const _panel=panel;panel=function(){_panel();const t=document.querySelector("#p .tot");if(sel&&t){const on=TR&&TR.id==sel;
  t.insertAdjacentHTML("afterend",`<div class="gob"><button class="gobtn" id="gob">${on?"Ver mi viaje en curso":"▶ Empezar viaje"}</button><p>${on?"":"Te guía con el GPS: dónde coger cada tren, aviso antes de bajar y aviso para no perder la vuelta."}</p></div>`);
  if(AV){const v=avOf(legsOf(sel));if(v.length)document.querySelector("#p .gob").insertAdjacentHTML("afterend",avHtml(v))}
- document.getElementById("gob").onclick=()=>{if(TR&&TR.id==sel){document.getElementById("trip").hidden=false;document.body.classList.add("tripon");tripRender(true);return}
+ document.getElementById("gob").onclick=()=>{if(TR&&TR.id==sel){showTrip();tripRender(true);return}
   const bt=document.getElementById("gob");if(TR&&!bt.dataset.ok){bt.dataset.ok=1;bt.textContent=`Ya vas a ${ST[TR.id][0]}. Toca otra vez para cambiar`;setTimeout(()=>{if(bt.isConnected){delete bt.dataset.ok;bt.textContent="▶ Empezar viaje"}},5000);return}tripStart(sel)}}}}
 {const _dr=drawRoute;drawRoute=function(){_dr();lmRoute();if(VIEW=="gps"&&LM&&!TR)lmFit()}}
 {const zi=document.getElementById("zi"),zo=document.getElementById("zo"),zr=document.getElementById("zr"),a=zi.onclick,b=zo.onclick,c=zr.onclick;
  zi.onclick=()=>VIEW=="gps"&&LM?LM.zoomIn():a();zo.onclick=()=>VIEW=="gps"&&LM?LM.zoomOut():b();zr.onclick=()=>VIEW=="gps"&&LM?lmFit():c()}
 document.getElementById("zme").onclick=()=>{gpsOn();FOLLOW=true;if(VIEW=="gps"&&LM){ME?LM.setView(ME.ll,16):hint("Buscando tu posición…")}else if(ME){const [x,y]=P(ME.ll[0],ME.ll[1]),w=Math.min(vb[2],260);setVB([x-w/2,y-w*vb[3]/vb[2]/2,w,w*vb[3]/vb[2]])}else hint("Buscando tu posición…")};
 document.getElementById("mv").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b)setView(b.dataset.v)});
+document.querySelector("#trip .tpn").onclick=()=>{if(document.getElementById("trip").classList.contains("min"))showTrip()};
 document.getElementById("tpx").onclick=()=>{const t=document.getElementById("trip");t.classList.toggle("min");document.getElementById("tpx").setAttribute("aria-expanded",!t.classList.contains("min"))};
 document.getElementById("tpend").onclick=e=>{const b=e.currentTarget;if(!b.dataset.ok){b.dataset.ok=1;b.textContent="¿Seguro?";setTimeout(()=>{delete b.dataset.ok;b.textContent="Terminar"},4000);return}delete b.dataset.ok;b.textContent="Terminar";tripEnd()};
 document.getElementById("tpmap").onclick=()=>{setView("gps");document.getElementById("mapbox").scrollIntoView({behavior:smooth(),block:"start"})};
@@ -2071,7 +2074,7 @@ loadAv();setInterval(()=>{if(!document.hidden)loadAv()},6e5);
 if(typeof chips=="function"){const _ch=chips;chips=function(){_ch.apply(this,arguments);cardAv()}}
 // al abrir: retomar viaje o el GPS si ya se había dado permiso
 (async()=>{let ok=false;try{ok=lsGet("vc-gps",0)&&(await navigator.permissions.query({name:"geolocation"})).state=="granted"}catch(e){}
- if(TR){document.getElementById("trip").hidden=false;document.body.classList.add("tripon");gpsOn();wakeOn();setTimeout(()=>{pick(TR.id);tripRender(true)},300)}else if(ok)gpsOn()})();
+ if(TR){showTrip();gpsOn();wakeOn();setTimeout(()=>{pick(TR.id);tripRender(true)},300)}else if(ok)gpsOn()})();
 
 }
 </script>
