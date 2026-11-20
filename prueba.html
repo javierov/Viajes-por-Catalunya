@@ -409,6 +409,24 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .tsl{font-size:13px;font-weight:600;color:var(--mut)}
 .tsd{font:700 34px/1 "Barlow Condensed",Barlow,sans-serif}
 .tst{font-size:16px}.tsx{font-size:14px;color:var(--mut)}
+.nxs{display:grid;gap:2px;margin:6px 0 10px;padding:12px 14px;border-radius:14px;background:#1d4ed8;color:#fff}
+.nxs span{font-size:13px;opacity:.85;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.nxs b{font:700 26px/1.15 Barlow,sans-serif}
+.nxs small{font-size:14px;opacity:.9}.nxs small b{font-size:14px}
+.nxs.fin{background:#e8730c}
+.tstops{list-style:none;margin:6px 0 4px;padding:0 0 0 4px}
+.tstops li{position:relative;padding:5px 0 5px 22px;display:flex;align-items:center;gap:8px;font-size:15px}
+.tstops li::before{content:"";position:absolute;left:5px;top:0;bottom:0;width:4px;background:var(--c)}
+.tstops li:first-child::before{top:50%}.tstops li:last-child::before{bottom:50%}
+.tstops li::after{content:"";position:absolute;left:1px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--bg,#fff);border:2px solid var(--c);box-sizing:border-box}
+.tstops li.gap::after{display:none}.tstops li.gap span{color:var(--mut)}
+.tstops li.ps{color:var(--mut)}.tstops li.ps::after{background:var(--c)}
+.tstops li.nx{font-weight:700}.tstops li.nx::after{background:#facc15;border-color:#facc15;width:16px;height:16px;margin-top:-8px;left:-1px}
+.tstops li.end{font-weight:700}.tstops li.end::after{background:#e8730c;border-color:#fff;width:16px;height:16px;margin-top:-8px;left:-1px}
+.tstops em{font-style:normal;font-size:12px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--line);color:var(--ink)}
+.tstops li.nx em{background:#facc15;color:#111}.tstops li.end em{background:#e8730c;color:#fff}
+.tpsx{background:none;border:0;padding:4px 0 8px;color:var(--ink);font:600 15px Barlow,sans-serif;text-decoration:underline;cursor:pointer}
+.vtag{margin:4px 0 6px;font-weight:700;color:#3b82f6;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1133,10 +1151,25 @@ const LLC={},LSC={};
 // tramo en tren: pasa por las estaciones reales de esa línea que quedan entre la salida y la llegada
 function legLL(l){const k=l.slice(0,4).join("|");if(LLC[k])return LLC[k];let r=null;
  if(l[0]=="train"&&RK[l[2]]&&RK[l[3]]){const lines=realLines(l);if(lines.length){const A=kLL(l[2]),B=kLL(l[3]),ab=hav(A,B);
-  const mid=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).map(i=>{const p=[RS[i][1],RS[i][2]];return {p,da:hav(A,p),db:hav(p,B)}}).filter(o=>o.da+o.db<ab*1.18+800).sort((x,y)=>x.da-y.da).map(o=>o.p);
-  const ids=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).filter(i=>{const p=[RS[i][1],RS[i][2]];return hav(A,p)+hav(p,B)<ab*1.18+800});LSC[k]=ids;
+  const mid=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).map(i=>{const p=[RS[i][1],RS[i][2]];return {p,da:hav(A,p),db:hav(p,B)}}).filter(o=>o.da+o.db<ab*1.18+800&&o.da<ab+300&&o.db<ab+300).sort((x,y)=>x.da-y.da).map(o=>o.p);
+  const ids=Object.keys(RS).filter(i=>i!=RK[l[2]]&&i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).filter(i=>{const p=[RS[i][1],RS[i][2]];return hav(A,p)+hav(p,B)<ab*1.18+800&&hav(A,p)<ab+300&&hav(p,B)<ab+300});LSC[k]=ids;
   if(mid.length)r=[A,...mid,B]}}
  return LLC[k]=r||seg(l[1],l[2],l[3]).map(kLL)}
+// paradas del tramo, en orden, con la distancia recorrida hasta cada una
+const LSO={};
+function legStops(l){const k=l.slice(0,4).join("|");if(LSO[k])return LSO[k];const ch=legLL(l),ids=LSC[k];if(!ids||!ids.length)return LSO[k]=null;
+ const A=kLL(l[2]),mid=ids.map(i=>({id:i,n:RS[i][0],ll:[RS[i][1],RS[i][2]]})).sort((x,y)=>hav(A,x.ll)-hav(A,y.ll));
+ const st=[{id:RK[l[2]],n:ST[l[2]][0],ll:A},...mid,{id:RK[l[3]],n:ST[l[3]][0],ll:kLL(l[3]),fin:1}];
+ st.forEach(o=>{o.cum=ch.length>1?onPath(ch,o.ll).tot-onPath(ch,o.ll).rem:0});st[0].cum=0;
+ return LSO[k]=st}
+// ¿cuál es la próxima parada? (nunca retrocede dentro del mismo tramo)
+function nextStop(l){const st=legStops(l);if(!st||!ME)return null;const ch=legLL(l),pi=onPath(ch,ME.ll),pr=pi.tot-pi.rem;
+ let i=st.findIndex((o,j)=>j>0&&o.cum>pr+150);if(i<0)i=st.length-1;const k=`${TR.ph}-${TR.li}`;
+ if(TR.nsk!==k){TR.nsk=k;TR.ns=0}if(i<TR.ns)i=TR.ns;
+ const at=st.findIndex((o,j)=>j>0&&j<st.length-1&&Math.abs(o.cum-pr)<=150&&hav(ME.ll,o.ll)<400);
+ return {st,i,at}}
+let VOZ=null;function say(t){if(!TR||TR.voz===false||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=1;
+ VOZ=VOZ||speechSynthesis.getVoices().find(v=>/^es[-_]ES/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^es/i.test(v.lang));if(VOZ)u.voice=VOZ;speechSynthesis.speak(u)}catch(e){}}
 const isLive=l=>l[0]=="train"&&!LIVE_NO.has(l[1])&&RK[l[2]]&&RK[l[3]];
 const isBusR=l=>l[0]=="bus"&&/^BUS[3V]$/.test(l[1])&&RK[l[2]]&&RK[l[3]];
 const liveTT=l=>isLive(l)||isBusR(l);
@@ -1266,6 +1299,7 @@ function addLayers(){
  m.addSource("stops",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addSource("st",{type:"geojson",data:stGeo()});
  m.addSource("me",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
+ m.addSource("nx",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addSource("acc",{type:"geojson",data:{type:"FeatureCollection",features:[]}});
  m.addLayer({id:"route-halo",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#0b1226":"#ffffff","line-width":10,"line-opacity":.9}});
  m.addLayer({id:"route-solid",type:"line",source:"route",filter:["!=",["get","dash"],1],layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":["get","c"],"line-width":5.5}});
@@ -1276,10 +1310,15 @@ function addLayers(){
  m.addLayer({id:"st-name",type:"symbol",source:"st",minzoom:12,layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],"text-size":13,"text-offset":[0,1.25],"text-anchor":"top","text-optional":true},paint:{"text-color":dk?"#e8edf9":"#1f2937","text-halo-color":dk?"#1b2647":"#ffffff","text-halo-width":1.6}});
  m.addLayer({id:"ends",type:"circle",source:"ends",paint:{"circle-radius":["case",["==",["get","d"],1],10,6],"circle-color":["case",["==",["get","d"],1],"#e8730c","#ffffff"],"circle-stroke-color":["case",["==",["get","d"],1],"#ffffff",["get","c"]],"circle-stroke-width":3}});
  m.addLayer({id:"ends-name",type:"symbol",source:"ends",filter:["==",["get","d"],1],layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],"text-size":15,"text-offset":[0,-1.4],"text-anchor":"bottom","text-allow-overlap":true},paint:{"text-color":dk?"#ffffff":"#111827","text-halo-color":dk?"#1b2647":"#ffffff","text-halo-width":2}});
+ m.addLayer({id:"nx",type:"circle",source:"nx",paint:{"circle-radius":9,"circle-color":"#facc15","circle-stroke-color":dk?"#0b1226":"#ffffff","circle-stroke-width":3}});
+ m.addLayer({id:"nx-name",type:"symbol",source:"nx",layout:{"text-field":["get","n"],"text-font":["Noto Sans Bold"],"text-size":14,"text-offset":[0,-1.3],"text-anchor":"bottom","text-allow-overlap":true},paint:{"text-color":dk?"#fde68a":"#92400e","text-halo-color":dk?"#1b2647":"#ffffff","text-halo-width":2}});
  m.addLayer({id:"acc",type:"fill",source:"acc",paint:{"fill-color":"#3b82f6","fill-opacity":.14}});
  m.addLayer({id:"me-halo",type:"circle",source:"me",paint:{"circle-radius":16,"circle-color":"#3b82f6","circle-opacity":.22}});
  m.addLayer({id:"me-dot",type:"circle",source:"me",paint:{"circle-radius":8,"circle-color":"#2563eb","circle-stroke-color":"#ffffff","circle-stroke-width":3}});
- lmRoute();paintMe()}
+ lmRoute();paintMe();lmNext()}
+function lmNext(){if(!LM||!LMREADY)return;let F=[];if(TR&&TR.on===TR.li&&TR.ph!="dest"&&TR.ph!="fin"){const l=tripLegs(TR.id,TR.ph)[TR.li];const ns=l&&l[0]=="train"&&nextStop(l);
+ if(ns){const o=ns.st[ns.i];F=[{type:"Feature",properties:{n:"Próxima: "+o.n},geometry:{type:"Point",coordinates:[o.ll[1],o.ll[0]]}}]}}
+ LM.getSource("nx").setData({type:"FeatureCollection",features:F})}
 async function lmInit(){
  if(LM)return;try{await loadML()}catch(e){document.getElementById("lmoff").hidden=false;return}if(LM)return;
  const el=document.getElementById("lm");THEME=isDark();
@@ -1344,7 +1383,7 @@ function stage(){
  const dF=hav(ME.ll,kLL(l[2]));
  if(TR.on===TR.li){const pi=onPath(legLL(l),ME.ll),dT=hav(ME.ll,kLL(l[3]));return {k:"ride",l,rem:pi.d>500?dT*1.15:pi.rem,off:Math.min(pi.d,dT>hav(kLL(l[2]),kLL(l[3]))+3000?pi.d:0)}}
  if(dF<=radius(l))return {k:"board",l,dF};return {k:"go",l,dF}}
-function advance(){const legs=tripLegs(TR.id,TR.ph);TR.li++;TR.on=null;TR.seen=null;
+function advance(){SHOWST=false;const legs=tripLegs(TR.id,TR.ph);TR.li++;TR.on=null;TR.seen=null;
  if(TR.li>=legs.length){if(TR.ph=="ida"){TR.ph="dest";TR.arr=Date.now();nfy(`Llegaste a ${ST[TR.id][0]}`,"Te avisaré cuando sea hora de volver.","dest");}
   else{TR.ph="fin";nfy("Llegaste a Badalona","¡Buen viaje!","fin")}}
  save2()}
@@ -1361,6 +1400,8 @@ function tripTick(){
   // ya va camino del destino: se alejó de la salida y está más cerca del final que la salida
   const prog=dF>Math.max(1500,radius(l)*3)&&dT<ab-300&&dF+dT<ab*1.6+1500;
   if(prog||(TR.seen===TR.li&&pi.d<900&&dF>radius(l)*1.5)||(pi.d<600&&ME.spd>6&&dF>radius(l))){TR.on=TR.li;save2();tripRender(true);return}}
+ if(TR.on===TR.li&&l[0]=="train"){const ns=nextStop(l);if(ns&&ns.i>(TR.ns||0)||ns&&TR.nsa!==`${TR.nsk}:${ns.i}`){const o=ns.st[ns.i];TR.ns=ns.i;
+   if(TR.nsa!==`${TR.nsk}:${ns.i}`){TR.nsa=`${TR.nsk}:${ns.i}`;save2();if(!o.fin){toast(`Próxima parada: ${o.n}`,`Tú te bajas en ${ST[l[3]][0]} · ${ns.st.length-1-ns.i} paradas después`);try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}say(`Próxima parada: ${o.n}`)}lmNext()}}}
  if(TR.on===TR.li){const p0=onPath(legLL(l),ME.ll),pi={rem:p0.d>500?hav(ME.ll,kLL(l[3]))*1.15:p0.rem},k=`pre-${TR.ph}-${TR.li}`;const near=l[0]=="train"?Math.max(1800,(ME.spd||12)*150):l[0]=="walk"?150:700;
   if(pi.rem<=near&&!TR.al[k]){TR.al[k]=1;save2();nfy(`Prepárate: te bajas en ${ST[l[3]][0]}`,l[0]=="train"?"Es la próxima parada o la siguiente.":"Ya casi llegas.",k)}}
  tripRender()}
@@ -1383,7 +1424,7 @@ setInterval(()=>{if(TR){backCheck();if(!document.hidden)tripRender()}},20000);
 function askNotif(){try{if(window.Notification&&Notification.permission=="default")Notification.requestPermission()}catch(e){}}
 let AC=null;function beep(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();[0,.25].forEach(t=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,AC.currentTime+t);g.gain.exponentialRampToValueAtTime(.3,AC.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t+.2);o.connect(g).connect(AC.destination);o.start(AC.currentTime+t);o.stop(AC.currentTime+t+.22)})}catch(e){}}
 function toast(t,b){const el=document.getElementById("vtoast");el.innerHTML=`<b>${esc(t)}</b>${b?`<span>${esc(b)}</span>`:""}`;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),9000)}
-async function nfy(t,b,tag){toast(t,b);try{navigator.vibrate&&navigator.vibrate([300,150,300,150,500])}catch(e){}beep();
+async function nfy(t,b,tag){toast(t,b);say(t);try{navigator.vibrate&&navigator.vibrate([300,150,300,150,500])}catch(e){}beep();
  try{if(window.Notification&&Notification.permission=="granted"){const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(r)r.showNotification(t,{body:b||"",tag,renotify:true,icon:"icon-192.png",vibrate:[300,150,300]});else new Notification(t,{body:b||"",tag})}}catch(e){}}
 let WLK=null;async function wakeOn(){if(!TR||!TR.wl)return;try{WLK=await navigator.wakeLock.request("screen")}catch(e){}}
 function wakeOff(){try{WLK&&WLK.release()}catch(e){}WLK=null}
@@ -1396,23 +1437,36 @@ const durTxt=m=>m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2
 const sumCard=(t,lbl)=>{if(!t)return "";let d=toMin(t.arr)-toMin(t.h);if(d<0)d+=1440;return `<div class="tsum"><span class="tsl">${lbl||"Próximo tren"}</span><b class="tsd">${durTxt(d)}</b><span class="tst">Salida <b>${t.h}</b> → Llegada <b>${t.arr}</b></span>${t.dst?`<span class="tsx">Destino ${esc(t.dst)}${t.a?` · andén ${esc(t.a)}`:""}</span>`:""}</div>`};
 const trainsHtml=(tr,l)=>tr==null?(liveTT(l)?(RP?'<p class="tpm2">Cargando próximos trenes…</p>':""):""):!tr.length?'<p class="tpm2">No encuentro trenes en las próximas horas. Mira la app de Renfe Cercanías.</p>':
  sumCard(tr.find(t=>!t.x))+`<p class="tpk">Próximos trenes</p><ul class="tpl">${tr.map(t=>t.x?`<li class="cx"><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span><em class="lt">Cancelado</em><small>Este tren no sale</small></li>`:`<li><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span>${t.a?`<em>Andén ${esc(t.a)}</em>`:""}<small>${t.r?`<i class="lt">${t.r} min tarde</i> · `:""}llega ${t.arr}</small></li>`).join("")}</ul>`;
-let renderQ=null;
+// lista de paradas: en el tren, las que faltan (la próxima resaltada); antes de subir, todas
+let SHOWST=false;
+function stopsHtml(l,ride){if(l[0]!="train")return "";const st=legStops(l);if(!st||st.length<3)return "";
+ const ns=ride?nextStop(l):null,c=lineColor(LN[l[1]].c),mid=st.length-2;
+ const li=(o,i)=>{const cl=ns&&i<ns.i?"ps":ns&&i==ns.i?"nx":"";return `<li class="${cl}${o.fin?" end":""}${i==0?" org":""}"><span>${esc(o.n)}</span>${o.fin?"<em>Te bajas</em>":ns&&i==ns.i?"<em>Próxima</em>":i==0&&!ns?"<em>Subes</em>":""}</li>`};
+ let rows;if(SHOWST)rows=st.map((o,i)=>li(o,i));
+ else if(ns){const r=[];for(let i=ns.i;i<st.length&&r.length<3;i++)r.push(li(st[i],i));if(ns.i+3<st.length-1)r.push(`<li class="gap"><span>…</span></li>`);if(ns.i+3<st.length)r.push(li(st[st.length-1],st.length-1));rows=r}
+ else rows=[li(st[0],0),li(st[st.length-1],st.length-1)];
+ return `<ol class="tstops" style="--c:${c}">${rows.join("")}</ol><button class="tpsx" data-a="stops">${SHOWST?"Ocultar paradas":ns?"Mostrar todas las paradas":`Mostrar ${mid} parada${mid==1?"":"s"}`} · ≈ ${l[4]} min</button>`}
+let renderQ=null,lastPh=null;
 async function tripRender(force){
  const box=document.getElementById("tpb");if(!TR||!box)return;
  const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#tpb")&&/INPUT|SELECT/.test(ae.tagName)){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),3000);return}
  if(!force&&Date.now()-renderT<1500){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),1600);return}renderT=Date.now();clearTimeout(renderQ);
+ if(lastPh!==TR.ph){const f=lastPh!==null;lastPh=TR.ph;if(f&&sel==TR.id)panel()}
  const s=stage(),legs=TR.ph=="dest"||TR.ph=="fin"?[]:tripLegs(TR.id,TR.ph);
  document.getElementById("tpt").textContent=ST[TR.id][0];document.getElementById("tpp").textContent=PHN[TR.ph];
  let h="";const l=s.l;
  if(s.k=="go"){const ll=kLL(l[2]);h=`<p class="tpk">Paso ${TR.li+1} de ${legs.length}</p><h3>Ve a ${l[0]=="walk"?"":"la "+(l[0]=="bus"?"parada":"estación")+" de "}${esc(ST[l[2]][0])}</h3>
   <p>${s.dF!=null?`Estás a <b>${mtxt(s.dF)}</b>${s.dF<5000?` · ≈ ${walkMin(s.dF)} min a pie`:""}. `:""}Allí: ${l[0]=="walk"?"sigue a pie":`${verb[l[0]].toLowerCase()} ${lineB(l)}`} hasta <b>${esc(ST[l[3]][0])}</b>.</p>
-  <div id="tptr"></div><div class="tpa"><a class="tpbtn" href="https://www.google.com/maps/dir/?api=1&destination=${ll[0]},${ll[1]}&travelmode=walking" target="_blank" rel="noopener">Cómo llegar ↗</a><button class="tpbtn alt" data-a="on">Ya voy en ${l[0]=="walk"?"camino":l[0]=="bus"?"el bus":l[0]=="metro"?"el metro":"el tren"}</button></div>`}
+  ${stopsHtml(l,false)}<div id="tptr"></div><div class="tpa"><a class="tpbtn" href="https://www.google.com/maps/dir/?api=1&destination=${ll[0]},${ll[1]}&travelmode=walking" target="_blank" rel="noopener">Cómo llegar ↗</a><button class="tpbtn alt" data-a="on">Ya voy en ${l[0]=="walk"?"camino":l[0]=="bus"?"el bus":l[0]=="metro"?"el metro":"el tren"}</button></div>`}
  else if(s.k=="board"){h=`<p class="tpk">Paso ${TR.li+1} de ${legs.length}</p><h3>${TR.li?"Cambia aquí: ":""}${l[0]=="walk"?(TR.li?"sigue a pie":"Sigue a pie"):`${TR.li?verb[l[0]].toLowerCase():verb[l[0]]} ${lineB(l)}`}</h3>
   <p>Estás en <b>${esc(ST[l[2]][0])}</b>. Bájate en <b>${esc(ST[l[3]][0])}</b> (≈ ${l[4]} min). ${esc(l[6])}</p>
-  <div id="tptr"></div><p class="tpm2">${l[5]?"Incluido en el abono.":l[0]=="metro"?"Con tu T-usual.":l[0]=="walk"?"":"Billete aparte."}</p><div class="tpa"><button class="tpbtn alt" data-a="on">Ya subí</button></div>`}
+  ${stopsHtml(l,false)}<div id="tptr"></div><p class="tpm2">${l[5]?"Incluido en el abono.":l[0]=="metro"?"Con tu T-usual.":l[0]=="walk"?"":"Billete aparte."}</p><div class="tpa"><button class="tpbtn alt" data-a="on">Ya subí</button></div>`}
  else if(s.k=="ride"){const eta=s.rem!=null?Math.max(1,Math.round(s.rem/(({walk:1.3,bus:9,metro:8,taxi:10,rack:4}[l[0]]||12.5)*60))):null;
   h=`<p class="tpk">Paso ${TR.li+1} de ${legs.length}</p><h3>${l[0]=="walk"?"Caminando":`Vas en ${({train:"el tren",metro:"el metro",bus:"el bus",rack:"el cremallera",taxi:"taxi"})[l[0]]} ${lineB(l)}`} hacia ${esc(ST[l[3]][0])}</h3>
+  ${(()=>{const ns=l[0]=="train"&&nextStop(l);if(!ns)return "";const o=ns.st[ns.i],left=ns.st.length-1-ns.i;
+   return `<div class="nxs${o.fin?" fin":""}"><span>${ns.at>0?`Ahora en ${esc(ns.st[ns.at].n)} · `:""}${o.fin?"Próxima parada: ¡te bajas!":"Próxima parada"}</span><b>${esc(o.n)}</b>${o.fin?"":`<small>Te bajas en <b>${esc(ST[l[3]][0])}</b> · ${left==1?"1 parada después":`${left} paradas después`}</small>`}</div>`})()}
   <p>${s.rem!=null?`Faltan <b>${mtxt(s.rem)}</b>${eta!=null?` · ≈ ${eta} min`:""}. `:""}Te aviso antes de bajar.${s.off>2500?' <i class="lt">Parece que no vas por esta ruta.</i>':""}</p>
+  ${stopsHtml(l,true)}
   ${legs[TR.li+1]?`<p class="tpm2">Después: ${legs[TR.li+1][0]=="walk"?"a pie":verb[legs[TR.li+1][0]].toLowerCase()+" "+lineB(legs[TR.li+1])} hasta ${esc(ST[legs[TR.li+1][3]][0])}.</p>`:""}
   <div class="tpa"><button class="tpbtn alt" data-a="off">Ya me bajé</button></div>`}
  else if(s.k=="dest"){const bl=tripLegs(TR.id,"vuelta"),st0=bl[0][2],d0=ME?hav(ME.ll,kLL(st0)):null,b=BACK(TR.id),rt=TR.rt;
@@ -1427,8 +1481,8 @@ async function tripRender(force){
  else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p><div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
- h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
- box.innerHTML=h;
+ h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
+ box.innerHTML=h;lmNext();
  if((s.k=="board"||s.k=="go")&&liveTT(l)){const k=l[2]+">"+l[3];document.getElementById("tptr").innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
   if(!LIVEC[k]||Date.now()-LIVEC[k].t>45e3){LIVEC[k]={t:Date.now(),v:LIVEC[k]&&LIVEC[k].v};const v=await nextTrains(l);LIVEC[k]={t:Date.now(),v};const el=document.getElementById("tptr");if(el)el.innerHTML=trainsHtml(v,l)}}
  if(s.k=="dest"&&!TR.rtAsk){TR.rtAsk=1;backCheck().then(()=>{TR.rtAsk=0})}
@@ -1443,10 +1497,17 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  else if(a=="back"){TR.ph="vuelta";TR.li=0;TR.on=null;TR.seen=null;if(simT)simGo()}
  else if(a=="vis"){VIS.add(TR.id);save();tripEnd();chips();return}
  else if(a=="end"){tripEnd();return}
+ else if(a=="stops"){SHOWST=!SHOWST;tripRender(true);return}
  else if(a=="sim"){simGo();return}
  save2();tripTick();tripRender(true)});
-document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
+document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpvz"){TR.voz=e.target.checked;save2();if(TR.voz)say("Voz activada");else try{speechSynthesis.cancel()}catch(x){}}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
 
+function vueltaSteps(){const ol=document.querySelector("#p ol.steps");if(!ol)return;const legs=tripLegs(sel,"vuelta");
+ let o=legs.map(l=>{const ln=LN[l[1]],c=ln.c;return `<li class="step${c=="var(--reg)"?" rg":""}" style="--c:${c}"><div class="ic">${IC[l[0]]}</div><div><h4>${l[0]=="walk"?`Camina desde ${ST[l[2]][0]}`:`${verb[l[0]]} <span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}">${ln.n}</span> en ${ST[l[2]][0]}`}</h4>
+  <p>${l[0]=="walk"?"Llegas a":"Bájate en"} <b style="color:var(--ink)">${ST[l[3]][0]}</b> · <span class="mins">≈ ${l[4]} min</span></p><p>${l[6]}</p>
+  <span class="tag ${incl(l)?"in":"out"}">${l[0]=="walk"?"A pie, gratis":l[5]?"Incluido en el abono":incl(l)?"Incluido en tu T-usual":"Billete aparte"}</span></div></li>`}).join("");
+ o+=`<li class="step" style="--c:var(--acc)"><div class="ic">${IC.flag}</div><div><h4>Llegas a Badalona</h4></div></li>`;
+ ol.innerHTML=o;ol.insertAdjacentHTML("beforebegin",`<p class="vtag">Camino de vuelta</p>`)}
 function showTrip(){const t=document.getElementById("trip");t.hidden=false;t.classList.remove("min");document.getElementById("tpx").setAttribute("aria-expanded","true");document.body.classList.add("tripon")}
 // ---------- simulación (#simular) ----------
 let simT=null,simP=[],simI=0;
@@ -1460,6 +1521,7 @@ function simGo(){
 // ---------- engancharse a la app ----------
 {const _setVB=setVB;setVB=function(v){_setVB(v);paintMe()}}
 {const _panel=panel;panel=function(){_panel();const t=document.querySelector("#p .tot");if(sel&&t){const on=TR&&TR.id==sel;
+ if(on&&(TR.ph=="dest"||TR.ph=="vuelta"||TR.ph=="fin"))vueltaSteps();
  t.insertAdjacentHTML("afterend",`<div class="gob"><button class="gobtn" id="gob">${on?"Ver mi viaje en curso":"▶ Empezar viaje"}</button><p>${on?"":"Te guía con el GPS: dónde coger cada tren, aviso antes de bajar y aviso para no perder la vuelta."}</p></div>`);
  if(AV){const v=avOf(legsOf(sel));if(v.length)document.querySelector("#p .gob").insertAdjacentHTML("afterend",avHtml(v))}
  document.getElementById("gob").onclick=()=>{if(TR&&TR.id==sel){showTrip();tripRender(true);return}
