@@ -429,6 +429,7 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .vtag{margin:4px 0 6px;font-weight:700;color:#3b82f6;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
 .teta{display:flex;justify-content:space-between;gap:10px;margin:6px 0 8px;padding:10px 14px;border-radius:14px;background:#0b1226;color:#fff}
 .teta div{display:grid}.teta div+div{text-align:right}.teta span{font-size:13px;opacity:.8}.teta b{font:700 26px/1.1 Barlow,sans-serif}
+.tpvs select{max-width:58vw;min-height:34px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:500 13.5px Barlow,sans-serif}.tpvs select option{color:#111}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1170,8 +1171,14 @@ function nextStop(l){const st=legStops(l);if(!st||!ME)return null;const ch=legLL
  if(TR.nsk!==k){TR.nsk=k;TR.ns=0}if(i<TR.ns)i=TR.ns;
  const at=st.findIndex((o,j)=>j>0&&j<st.length-1&&Math.abs(o.cum-pr)<=150&&hav(ME.ll,o.ll)<400);
  return {st,i,at}}
-let VOZ=null;function say(t){if(!TR||TR.voz===false||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=1;
- VOZ=VOZ||speechSynthesis.getVoices().find(v=>/^es[-_]ES/i.test(v.lang))||speechSynthesis.getVoices().find(v=>/^es/i.test(v.lang));if(VOZ)u.voice=VOZ;speechSynthesis.speak(u)}catch(e){}}
+let VOZ=null;
+const esVoices=()=>{try{return speechSynthesis.getVoices().filter(v=>/^es/i.test(v.lang)).sort((a,b)=>(/ES/i.test(b.lang)-/ES/i.test(a.lang))||(/natural|neural|google|online|enhanced|premium/i.test(b.name)-/natural|neural|google|online|enhanced|premium/i.test(a.name)))}catch(e){return []}};
+function pickVoice(){const vs=esVoices(),n=lsGet("vc-voz","");VOZ=vs.find(v=>v.name==n)||vs[0]||null;return VOZ}
+try{speechSynthesis.onvoiceschanged=()=>{pickVoice();const el=document.getElementById("tpvs");if(el&&!el.options.length)tripRender(true)}}catch(e){}
+function say(t,force){if(!force&&(!TR||TR.voz===false)||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=.92;u.pitch=1.05;
+ pickVoice();if(VOZ){u.voice=VOZ;u.lang=VOZ.lang}speechSynthesis.speak(u)}catch(e){}}
+function voiceSel(){const vs=esVoices();if(vs.length<1)return "";const cur=(pickVoice()||{}).name;
+ return `<label class="tpw tpvs">Voz: <select id="tpvs">${vs.map(v=>`<option value="${esc(v.name)}"${v.name==cur?" selected":""}>${esc(v.name.replace(/^(Microsoft|Google|Samsung)\s*/i,"").replace(/\s*\(.*?\)\s*/g," ").trim()||v.name)} · ${esc(v.lang)}</option>`).join("")}</select></label><button data-a="vtest">Probar voz</button>`}
 const isLive=l=>l[0]=="train"&&!LIVE_NO.has(l[1])&&RK[l[2]]&&RK[l[3]];
 const isBusR=l=>l[0]=="bus"&&/^BUS[3V]$/.test(l[1])&&RK[l[2]]&&RK[l[3]];
 const liveTT=l=>isLive(l)||isBusR(l);
@@ -1484,7 +1491,7 @@ async function tripRender(force){
  else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p><div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
- h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
+ h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${TR.voz!==false?voiceSel():""}${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
  box.innerHTML=h;lmNext();
  if((s.k=="board"||s.k=="go")&&liveTT(l)){const k=l[2]+">"+l[3];document.getElementById("tptr").innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
   if(!LIVEC[k]||Date.now()-LIVEC[k].t>45e3){LIVEC[k]={t:Date.now(),v:LIVEC[k]&&LIVEC[k].v};const v=await nextTrains(l);LIVEC[k]={t:Date.now(),v};const el=document.getElementById("tptr");if(el)el.innerHTML=trainsHtml(v,l)}}
@@ -1500,10 +1507,11 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  else if(a=="back"){TR.ph="vuelta";TR.li=0;TR.on=null;TR.seen=null;if(simT)simGo()}
  else if(a=="vis"){VIS.add(TR.id);save();tripEnd();chips();return}
  else if(a=="end"){tripEnd();return}
+ else if(a=="vtest"){say("Próxima parada: Badalona",1);return}
  else if(a=="stops"){SHOWST=!SHOWST;tripRender(true);return}
  else if(a=="sim"){simGo();return}
  save2();tripTick();tripRender(true)});
-document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpvz"){TR.voz=e.target.checked;save2();if(TR.voz)say("Voz activada");else try{speechSynthesis.cancel()}catch(x){}}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
+document.addEventListener("change",e=>{if(!TR)return;if(e.target.id=="tpbt"){e.target.blur();TR.back=e.target.value||null;save2();backCheck();tripRender(true)}if(e.target.id=="tpvs"){e.target.blur();lsSet("vc-voz",e.target.value);VOZ=null;say("Próxima parada: Badalona",1)}if(e.target.id=="tpvz"){TR.voz=e.target.checked;save2();if(TR.voz)say("Voz activada");else try{speechSynthesis.cancel()}catch(x){}}if(e.target.id=="tpwl"){TR.wl=e.target.checked;save2();TR.wl?wakeOn():wakeOff()}});
 
 function vueltaSteps(){const ol=document.querySelector("#p ol.steps");if(!ol)return;const legs=tripLegs(sel,"vuelta");
  let o=legs.map(l=>{const ln=LN[l[1]],c=ln.c;return `<li class="step${c=="var(--reg)"?" rg":""}" style="--c:${c}"><div class="ic">${IC[l[0]]}</div><div><h4>${l[0]=="walk"?`Camina desde ${ST[l[2]][0]}`:`${verb[l[0]]} <span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}">${ln.n}</span> en ${ST[l[2]][0]}`}</h4>
