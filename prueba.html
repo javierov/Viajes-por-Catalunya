@@ -427,6 +427,8 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .tstops li.nx em{background:#facc15;color:#111}.tstops li.end em{background:#e8730c;color:#fff}
 .tpsx{background:none;border:0;padding:4px 0 8px;color:var(--ink);font:600 15px Barlow,sans-serif;text-decoration:underline;cursor:pointer}
 .vtag{margin:4px 0 6px;font-weight:700;color:#3b82f6;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
+.teta{display:flex;justify-content:space-between;gap:10px;margin:6px 0 8px;padding:10px 14px;border-radius:14px;background:#0b1226;color:#fff}
+.teta div{display:grid}.teta div+div{text-align:right}.teta span{font-size:13px;opacity:.8}.teta b{font:700 26px/1.1 Barlow,sans-serif}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1463,6 +1465,7 @@ async function tripRender(force){
   ${stopsHtml(l,false)}<div id="tptr"></div><p class="tpm2">${l[5]?"Incluido en el abono.":l[0]=="metro"?"Con tu T-usual.":l[0]=="walk"?"":"Billete aparte."}</p><div class="tpa"><button class="tpbtn alt" data-a="on">Ya subí</button></div>`}
  else if(s.k=="ride"){const eta=s.rem!=null?Math.max(1,Math.round(s.rem/(({walk:1.3,bus:9,metro:8,taxi:10,rack:4}[l[0]]||12.5)*60))):null;
   h=`<p class="tpk">Paso ${TR.li+1} de ${legs.length}</p><h3>${l[0]=="walk"?"Caminando":`Vas en ${({train:"el tren",metro:"el metro",bus:"el bus",rack:"el cremallera",taxi:"taxi"})[l[0]]} ${lineB(l)}`} hacia ${esc(ST[l[3]][0])}</h3>
+  ${eta!=null?`<div class="teta"><div><span>Tiempo restante</span><b>${durTxt(eta)}</b></div><div><span>Hora de llegada</span><b>${hmm(nowMin()+eta)}</b></div></div>`:""}
   ${(()=>{const ns=l[0]=="train"&&nextStop(l);if(!ns)return "";const o=ns.st[ns.i],left=ns.st.length-1-ns.i;
    return `<div class="nxs${o.fin?" fin":""}"><span>${ns.at>0?`Ahora en ${esc(ns.st[ns.at].n)} · `:""}${o.fin?"Próxima parada: ¡te bajas!":"Próxima parada"}</span><b>${esc(o.n)}</b>${o.fin?"":`<small>Te bajas en <b>${esc(ST[l[3]][0])}</b> · ${left==1?"1 parada después":`${left} paradas después`}</small>`}</div>`})()}
   <p>${s.rem!=null?`Faltan <b>${mtxt(s.rem)}</b>${eta!=null?` · ≈ ${eta} min`:""}. `:""}Te aviso antes de bajar.${s.off>2500?' <i class="lt">Parece que no vas por esta ruta.</i>':""}</p>
