@@ -430,6 +430,10 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .teta{display:flex;justify-content:space-between;gap:10px;margin:6px 0 8px;padding:10px 14px;border-radius:14px;background:#0b1226;color:#fff}
 .teta div{display:grid}.teta div+div{text-align:right}.teta span{font-size:13px;opacity:.8}.teta b{font:700 26px/1.1 Barlow,sans-serif}
 .tpvs select{max-width:58vw;min-height:34px;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:500 13.5px Barlow,sans-serif}.tpvs select option{color:#111}
+.opb{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:12px 14px;border-radius:16px;background:light-dark(#fff7ed,#2a1a0c);border:1.5px solid light-dark(#fdba74,#9a3412)}
+.opb a{flex:1 1 220px;color:light-dark(#9a3412,#fdba74);font:700 17px/1.25 Barlow,sans-serif;text-decoration:none}
+.opb button{background:none;border:0;color:light-dark(#9a3412,#fdba74);opacity:.75;font:500 14px Barlow,sans-serif;text-decoration:underline;cursor:pointer;padding:4px}
+.opb.intrip{margin:10px 0}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1384,7 +1388,20 @@ function tripStart(id){
  if(ME){const legs=tripLegs(id,"ida");for(let j=legs.length-1;j>=0;j--){if(hav(ME.ll,kLL(legs[j][2]))<600){TR.li=j;break}}}
  save2();askNotif();gpsOn();wakeOn();showTrip();
  if(sel!=id)pick(id);else panel();lmRoute();if(VIEW!="gps")setView("gps");else lmFit();tripTick();tripRender(true)}
-function tripEnd(){TR=null;save2();wakeOff();simStop();document.getElementById("trip").hidden=true;document.body.classList.remove("tripon");lmRoute();chipMe();panel()}
+// ---- Encuesta común («opinion/» del cuestionario): botón «¿Qué tal tu viaje?» ----
+const OP_APP="Viajes por Catalunya";
+const OP_URL="https://javierov.github.io/viajes-disenados-a-mano/opinion/?a="+encodeURIComponent(OP_APP)+"&s="+encodeURIComponent("mapa,donde,trayectos,Modo viaje,Próxima parada,Horarios en vivo,Avisos de Rodalies,Ruta pastelera");
+const opDone=()=>{try{return localStorage.getItem("tvdm-opinion:"+OP_APP)!=null}catch(e){return false}};
+const opShow=()=>lsGet("vc-op-ready",0)&&!opDone()&&lsGet("vc-op-later","")!=today();
+function opReady(){if(!lsGet("vc-op-ready",0)){lsSet("vc-op-ready",1);opPaint()}}
+function opCheck(){if(!TR)return;if(TR.ph=="vuelta"||TR.ph=="fin"||TR.ph=="dest"&&TR.back&&nowMin()>=toMin(TR.back)-120)opReady()}
+const opHtml=cls=>`<div class="opb ${cls||""}"><a href="${OP_URL}" target="_blank" rel="noopener" data-op="go">¿Qué tal tu viaje? Cuéntamelo en un minuto →</a><button type="button" data-op="later">Ahora no</button></div>`;
+function opPaint(){let el=document.getElementById("opb");if(!el){const h=document.querySelector("header.hero");if(!h)return;h.insertAdjacentHTML("afterend",'<div id="opb"></div>');el=document.getElementById("opb")}
+ el.innerHTML=opShow()?opHtml():""}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-op]");if(!b)return;
+ if(b.dataset.op=="later"){e.preventDefault();lsSet("vc-op-later",today());opPaint();document.querySelectorAll(".opb.intrip").forEach(x=>x.remove())}});
+addEventListener("visibilitychange",()=>{if(!document.hidden)opPaint()});
+function tripEnd(){if(TR&&(TR.ph=="dest"||TR.ph=="vuelta"||TR.ph=="fin"))opReady();TR=null;save2();wakeOff();simStop();document.getElementById("trip").hidden=true;document.body.classList.remove("tripon");lmRoute();chipMe();panel()}
 function stage(){
  if(!TR)return null;if(TR.ph=="dest")return {k:"dest"};if(TR.ph=="fin")return {k:"fin"};
  const legs=tripLegs(TR.id,TR.ph);if(TR.li>=legs.length)return {k:TR.ph=="ida"?"dest":"fin"};
@@ -1460,6 +1477,7 @@ async function tripRender(force){
  const box=document.getElementById("tpb");if(!TR||!box)return;
  const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#tpb")&&/INPUT|SELECT/.test(ae.tagName)){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),3000);return}
  if(!force&&Date.now()-renderT<1500){clearTimeout(renderQ);renderQ=setTimeout(()=>tripRender(true),1600);return}renderT=Date.now();clearTimeout(renderQ);
+ opCheck();
  if(lastPh!==TR.ph){const f=lastPh!==null;lastPh=TR.ph;if(sel==TR.id){if(f)panel();try{runTrain();drawPins()}catch(e){}}}
  const s=stage(),legs=TR.ph=="dest"||TR.ph=="fin"?[]:tripLegs(TR.id,TR.ph);
  document.getElementById("tpt").textContent=ST[TR.id][0];document.getElementById("tpp").textContent=PHN[TR.ph];
@@ -1489,7 +1507,7 @@ async function tripRender(force){
   ${TR.back&&rt?(()=>{const v=[...(rt.next||[]),rt.last].find(x=>x&&x.s==TR.back);return v?sumCard({h:v.s,arr:v.l,dst:"Badalona"},"Tu tren de vuelta"):""})():""}
   ${TR.back?`<p class="tpok">${TR.leave==null?`Aviso puesto para el tren de las ${TR.back}.`:TR.leave<=nowMin()?`Ya es hora de ir a la estación: el tren sale a las ${TR.back}.`:`Sal hacia la estación a las ${hmm(TR.leave)}${TR.leave-20>nowMin()?`. Te aviso a las ${hmm(TR.leave-20)} y a las ${hmm(TR.leave)}`:`. Te aviso a esa hora`}.`}</p>`:""}
   <div class="tpa"><button class="tpbtn" data-a="back">Volver ahora</button></div>`}
- else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p><div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
+ else if(s.k=="fin"){h=`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p>${opShow()?opHtml("intrip"):""}<div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
  h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
@@ -1563,6 +1581,8 @@ if(typeof chips=="function"){const _ch=chips;chips=function(){_ch.apply(this,arg
 // al abrir: retomar viaje o el GPS si ya se había dado permiso
 (async()=>{let ok=false;try{ok=lsGet("vc-gps",0)&&(await navigator.permissions.query({name:"geolocation"})).state=="granted"}catch(e){}
  if(TR){showTrip();gpsOn();wakeOn();setTimeout(()=>{pick(TR.id);tripRender(true)},300)}else if(ok)gpsOn()})();
+
+try{opPaint()}catch(e){}
 
 }
 </script>
