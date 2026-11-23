@@ -1717,10 +1717,17 @@ addEventListener("storage",e=>{if(e.key!=="vc-viaje")return;try{const v=e.newVal
  TR=v;regCV();PICK=false;tripRender(true);if(sel==TR.id)panel();lmRoute()}catch(x){}});
 
 // versión de la app: si otra pestaña abre una versión más nueva, esta se recarga (el viaje sigue guardado)
-const APPV=15;
+const APPV=16;
 const reloadOnce=()=>{try{if(sessionStorage.getItem("vc-rl")==String(APPV))return;sessionStorage.setItem("vc-rl",String(APPV))}catch(e){}location.reload()};
 try{const v=+localStorage.getItem("vc-appv")||0;if(v<APPV)localStorage.setItem("vc-appv",String(APPV));else if(v>APPV)setTimeout(reloadOnce,300)}catch(e){}
 addEventListener("storage",e=>{if(e.key=="vc-appv"&&+e.newValue>APPV)reloadOnce()});
+
+// versión fija durante el viaje: pide al service worker que no cambie la app hasta terminar
+function pinMsg(on){try{const k=location.pathname.endsWith("/")?"./index.html":"."+location.pathname.slice(location.pathname.lastIndexOf("/"));
+ navigator.serviceWorker&&navigator.serviceWorker.ready.then(r=>{(navigator.serviceWorker.controller||r.active)&&(navigator.serviceWorker.controller||r.active).postMessage({pin:on?1:0,key:k})})}catch(e){}}
+{const _ts=tripStart;tripStart=function(){_ts.apply(this,arguments);pinMsg(1)}}
+{const _te=tripEnd;tripEnd=function(){_te.apply(this,arguments);pinMsg(0)}}
+try{setTimeout(()=>pinMsg(!!TR),2000)}catch(e){}
 
 }
 </script>
