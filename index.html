@@ -437,6 +437,9 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .pnote{margin:6px 0 0;font-size:13px;color:var(--mut)}
 .tpdst{margin:8px 0;padding:8px 12px;border-radius:12px;background:light-dark(#fef9c3,#3a3410);font-size:15px;line-height:1.35}
 .tpchg{margin:10px 0;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line)}
+.tpl li .tw{margin-left:8px;padding:3px 10px;border-radius:99px;border:1.5px solid var(--line);background:none;color:var(--ink);font:600 13px Barlow,sans-serif;cursor:pointer}
+.tpl li .tw.on{background:#facc15;border-color:#facc15;color:#111}
+.twbox{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:light-dark(#fef9c3,#3a3410);font-size:15px;line-height:1.35}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1481,6 +1484,18 @@ let LIVEC={},renderT=0;
 const lineB=l=>{const ln=LN[l[1]],c=ln.c;return `<span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}" style="--c:${c}">${ln.n}</span>`};
 const durTxt=m=>m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")}`;
 const sumCard=(t,lbl)=>{if(!t)return "";let d=toMin(t.arr)-toMin(t.h);if(d<0)d+=1440;return `<div class="tsum"><span class="tsl">${lbl||"Próximo tren"}</span><b class="tsd">${durTxt(d)}</b><span class="tst">Salida <b>${t.h}</b> → Llegada <b>${t.arr}</b></span>${t.dst?`<span class="tsx">Destino ${esc(t.dst)}${t.a?` · andén ${esc(t.a)}`:""}</span>`:""}</div>`};
+// «Avísame para este tren»: aviso 10 min y 3 min antes de que salga, estés donde estés
+function watchHtml(){const w=TR&&TR.watch;if(!w)return "";const left=toMin(w.h)-nowMin();
+ return `<div class="twbox">⏰ Te aviso para el tren de <b>${esc(w.h)}</b> a ${esc(w.dst)}${w.a?` · andén ${esc(w.a)}`:""}${w.st?` desde ${esc(w.st)}`:""}${left>=0?` · sale en ${durTxt(left)}`:""}. <button class="tpsx" data-twx="1">Quitar</button></div>`}
+function watchCheck(){const w=TR&&TR.watch;if(!w)return;let left=toMin(w.h)-nowMin();if(left<-720)left+=1440;
+ if(left<=10&&!w.a10){w.a10=1;save2();nfy(`Tu tren sale en ${Math.max(left,0)} minutos`,`${w.l} de las ${w.h} a ${w.dst}${w.a?`, andén ${w.a}`:""}. Ve hacia el andén.`,"tw10");try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}beep()}
+ if(left<=3&&!w.a3){w.a3=1;save2();nfy(`¡Tu tren sale ya!`,`${w.h} a ${w.dst}${w.a?`, andén ${w.a}`:""}.`,"tw3");try{navigator.vibrate&&navigator.vibrate([500,200,500])}catch(e){}beep()}
+ if(left<-5){TR.watch=null;save2();tripRender(true)}}
+setInterval(watchCheck,20e3);addEventListener("visibilitychange",()=>{if(!document.hidden)watchCheck()});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-tw],[data-twx]");if(!b||!TR)return;e.preventDefault();e.stopPropagation();
+ if(b.dataset.twx){TR.watch=null;save2();toast("Aviso quitado","");tripRender(true);return}
+ const [h,dst,a,l]=b.dataset.tw.split("|");TR.watch={h,dst,a,l,st:TR.chg?TR.chg.n:""};save2();askNotif&&askNotif();
+ toast(`Te aviso para el tren de las ${h}`,`10 minutos antes de que salga y otra vez justo antes. Deja la app abierta.`);say(`Te aviso para el tren de las ${h}`);tripRender(true);watchCheck()},true);
 // qué debe decir el cartel del tren (otros de la misma línea pueden terminar antes)
 function dstHint(tr,l){if(!l||l[0]!="train")return "";const d=[...new Set(tr.filter(t=>!t.x).map(t=>t.dst))];if(!d.length)return "";
  const n=d.map(x=>`<b>${esc(x)}</b>`),txt=n.length==1?n[0]:n.slice(0,-1).join(", ")+" o "+n[n.length-1];
@@ -1492,7 +1507,7 @@ async function trainsFrom(o,l){const d=RK[l[3]];const j=await live("dep",{s:o},4
   return {h:t.h,r:t.r,a:t.a,dst:t.dst,l:t.l,arr:t.p[id][1],n:t.n,m,x:t.x}}).filter(Boolean).sort((a,b)=>a.m-b.m).slice(0,5)}
 function chgStation(l){const st=legStops(l);if(!st||!ME)return null;let best=null,bd=1e9;st.slice(0,-1).forEach(o=>{const dd=hav(ME.ll,o.ll);if(dd<bd){bd=dd;best=o}});return bd<800?best:null}
 const trainsHtml=(tr,l)=>tr==null?(liveTT(l)?(RP?'<p class="tpm2">Cargando próximos trenes…</p>':""):""):!tr.length?'<p class="tpm2">No encuentro trenes en las próximas horas. Mira la app de Renfe Cercanías.</p>':
- sumCard(tr.find(t=>!t.x))+dstHint(tr,l)+`<p class="tpk">Próximos trenes</p><ul class="tpl">${tr.map(t=>t.x?`<li class="cx"><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span><em class="lt">Cancelado</em><small>Este tren no sale</small></li>`:`<li><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span>${t.a?`<em>Andén ${esc(t.a)}</em>`:""}<small>${t.r?`<i class="lt">${t.r} min tarde</i> · `:""}llega ${t.arr}</small></li>`).join("")}</ul>`;
+ sumCard(tr.find(t=>!t.x))+dstHint(tr,l)+`<p class="tpk">Próximos trenes</p><ul class="tpl">${tr.map(t=>t.x?`<li class="cx"><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span><em class="lt">Cancelado</em><small>Este tren no sale</small></li>`:`<li><b>${t.h}</b><span>${esc(t.l)} → ${esc(t.dst)}</span>${t.a?`<em>Andén ${esc(t.a)}</em>`:""}<small>${t.r?`<i class="lt">${t.r} min tarde</i> · `:""}llega ${t.arr}</small>${TR&&TR.watch&&TR.watch.h==t.h?`<button class="tw on" data-twx="1">⏰ Te aviso</button>`:`<button class="tw" data-tw="${esc(t.h)}|${esc(t.dst)}|${esc(t.a||"")}|${esc(t.l)}">Avísame</button>`}</li>`).join("")}</ul>`;
 // lista de paradas: en el tren, las que faltan (la próxima resaltada); antes de subir, todas
 let SHOWST=false;
 function stopsHtml(l,ride){if(l[0]!="train")return "";const st=legStops(l);if(!st||st.length<3)return "";
@@ -1542,7 +1557,7 @@ async function tripRender(force){
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
  h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
- box.innerHTML=h;lmNext();
+ box.innerHTML=watchHtml()+h;lmNext();
  if((s.k=="board"||s.k=="go")&&liveTT(l)){const k=l[2]+">"+l[3];document.getElementById("tptr").innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
   if(!LIVEC[k]||Date.now()-LIVEC[k].t>45e3){LIVEC[k]={t:Date.now(),v:LIVEC[k]&&LIVEC[k].v};const v=await nextTrains(l);LIVEC[k]={t:Date.now(),v};const el=document.getElementById("tptr");if(el)el.innerHTML=trainsHtml(v,l)}}
  if(s.k=="ride"&&TR.chg){const el=document.getElementById("tpchgl"),k="chg>"+TR.chg.id+">"+l[3];if(el){el.innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
