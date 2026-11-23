@@ -442,6 +442,10 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .twbox{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:light-dark(#fef9c3,#3a3410);font-size:15px;line-height:1.35}
 .twbox.miss{background:light-dark(#fee2e2,#3b1414)}.twbox ul{margin:6px 0;padding-left:18px}.twbox p{margin:6px 0 0}
 .tphome{width:100%;margin:8px 0 4px}
+.tpl.pick li{display:flex!important;align-items:center;justify-content:space-between;gap:8px;grid-template-columns:none}
+.tpl.pick li span{flex:1 1 auto}
+.tpl.pick li .tw{flex:0 0 auto;width:auto;white-space:nowrap;margin:0}
+.tpl.pick li.cur{opacity:.8}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1387,10 +1391,12 @@ function setView(v){
 }
 
 // ---------- modo viaje ----------
-let TR=lsGet("vc-viaje",null);try{if(TR&&TR.cv&&!ST[TR.cv.k]){ST[TR.cv.k]=[TR.cv.n,TR.cv.ll[0],TR.cv.ll[1]];RK[TR.cv.k]=TR.cv.id}}catch(e){}if(TR&&(Date.now()-TR.t0>18*36e5||!D.some(d=>d[0]==TR.id)))TR=null;
+let TR=lsGet("vc-viaje",null);try{[TR&&TR.cv,TR&&TR.ci,TR&&TR.ce].forEach(c=>{if(c&&!ST[c.k]){ST[c.k]=[c.n,c.ll[0],c.ll[1]];RK[c.k]=c.id}})}catch(e){}if(TR&&(Date.now()-TR.t0>18*36e5||!D.some(d=>d[0]==TR.id)))TR=null;
 const PHN={ida:"Ida",dest:"En destino",vuelta:"Vuelta",fin:"Llegaste"};
-function regCV(){const c=TR&&TR.cv;if(c&&!ST[c.k]){ST[c.k]=[c.n,c.ll[0],c.ll[1]];RK[c.k]=c.id}}
-function tripLegs(id,ph){let legs=legsOf(id);if(ph!="vuelta")return legs;regCV();
+function regCV(){[TR&&TR.cv,TR&&TR.ci,TR&&TR.ce].forEach(c=>{if(c&&!ST[c.k]){ST[c.k]=[c.n,c.ll[0],c.ll[1]];RK[c.k]=c.id}})}
+const cutLegs=(legs,c)=>legs.slice(0,c.j+1).map((l,i)=>i==c.j?[l[0],l[1],l[2],c.k,Math.max(3,Math.round(l[4]*(c.f||1))),l[5],l[6]]:l);
+function tripLegs(id,ph){const r=tripLegs0(id,ph);return TR&&TR.id==id&&TR.ce&&ph=="vuelta"?cutLegs(r,TR.ce):r}
+function tripLegs0(id,ph){let legs=legsOf(id);regCV();if(ph!="vuelta")return TR&&TR.id==id&&TR.ci?cutLegs(legs,TR.ci):legs;
  if(TR&&TR.id==id&&TR.cv){const c=TR.cv;legs=legs.slice(0,c.j+1).map((l,i)=>i==c.j?[l[0],l[1],l[2],c.k,Math.max(5,Math.round(l[4]*c.f)),l[5],l[6]]:l)}
  return legs.slice().reverse().map(l=>[l[0],l[1],l[3],l[2],l[4],l[5],l[0]=="walk"?`A pie hasta ${ST[l[2]][0]}.`:l[0]=="metro"?`Metro ${LN[l[1]].n} de vuelta hasta ${ST[l[2]][0]}. Lo cubre tu T-usual.`:`De vuelta hasta ${ST[l[2]][0]}. Mira en el tren o en la pantalla del andén que vaya en esa dirección.`])}
 const radius=l=>l[0]=="walk"?120:l[0]=="bus"||l[0]=="taxi"||l[0]=="metro"?250:400;
@@ -1406,7 +1412,7 @@ function homeHere(){if(!TR)return;if(!ME){toast("Necesito tu posición","Activa 
  let cv;if(best.start){const l=legs[best.j-1];cv={j:best.j-1,k:l[3],id:RK[l[3]]||"",n:ST[l[3]][0],ll:kLL(l[3]),f:1}}
  else{const o=best.o,k=RS[o.id]&&Object.keys(RK).find(x=>RK[x]==o.id&&ST[x])||("s"+o.id);cv={j:best.j,k,id:o.id,n:o.n,ll:o.ll,f:best.f}}
  if(cv.k==legs[cv.j][3]&&cv.j==legs.length-1)delete cv.f;
- const sm=!!simT;simStop();TR.cv=cv;regCV();TR.ph="vuelta";TR.li=0;TR.on=null;TR.seen=null;TR.chg=null;TR.watch=null;TR.back=null;TR.al={};SHOWST=false;save2();
+ const sm=!!simT;simStop();TR.ce=null;TR.ci=null;TR.cv=cv;regCV();TR.ph="vuelta";TR.li=0;TR.on=null;TR.seen=null;TR.chg=null;TR.watch=null;TR.back=null;TR.al={};SHOWST=false;save2();
  toast(`Vuelta a Badalona desde ${cv.n}`,"Te guío con los próximos trenes y te aviso antes de bajar.");say(`Vuelta a Badalona desde ${cv.n}`);
  if(sel==TR.id)panel();lmRoute();tripTick();tripRender(true);if(sm)simGo()}
 function tripStart(id){
@@ -1450,9 +1456,9 @@ function stage(){
  const dF=hav(ME.ll,kLL(l[2]));
  if(TR.on===TR.li){const pi=onPath(legLL(l),ME.ll),dT=hav(ME.ll,kLL(l[3]));return {k:"ride",l,rem:pi.d>500?dT*1.15:pi.rem,off:Math.min(pi.d,dT>hav(kLL(l[2]),kLL(l[3]))+3000?pi.d:0)}}
  if(dF<=radius(l))return {k:"board",l,dF};return {k:"go",l,dF}}
-function advance(){SHOWST=false;if(TR)TR.chg=null;const legs=tripLegs(TR.id,TR.ph);TR.li++;TR.on=null;TR.seen=null;
+function advance(){SHOWST=false;PICK=false;if(TR)TR.chg=null;const legs=tripLegs(TR.id,TR.ph);TR.li++;TR.on=null;TR.seen=null;
  if(TR.li>=legs.length){if(TR.ph=="ida"){TR.ph="dest";TR.arr=Date.now();nfy(`Llegaste a ${ST[TR.id][0]}`,"Te avisaré cuando sea hora de volver.","dest");}
-  else{TR.ph="fin";nfy("Llegaste a Badalona","¡Buen viaje!","fin")}}
+  else{TR.ph="fin";const vl=tripLegs(TR.id,"vuelta");nfy(`Llegaste a ${ST[vl[vl.length-1][3]][0]}`,"¡Buen viaje!","fin")}}
  save2()}
 function tripTick(){
  if(!TR||!ME||TR.ph=="dest"||TR.ph=="fin"){tripRender();return}
@@ -1526,6 +1532,27 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
  if(b.dataset.twx){TR.watch=null;save2();toast("Aviso quitado","");tripRender(true);return}
  const [h,dst,a,l]=b.dataset.tw.split("|");TR.watch={h,dst,a,l,st:TR.chg?TR.chg.n:""};save2();askNotif&&askNotif();
  toast(`Te aviso para el tren de las ${h}`,`10 minutos antes de que salga y otra vez justo antes. Deja la app abierta.`);say(`Te aviso para el tren de las ${h}`);tripRender(true);watchCheck()},true);
+// «Me bajo aquí»: elegir otra parada (antes del destino o hasta 3 más allá)
+let PICK=false;
+function beyondStops(l){const lines=realLines(l);if(!lines.length)return [];const A=kLL(l[2]),B=kLL(l[3]),ab=hav(A,B);
+ return Object.keys(RS).filter(i=>i!=RK[l[3]]&&RS[i][3].some(x=>lines.includes(x))).map(i=>({id:i,n:RS[i][0],ll:[RS[i][1],RS[i][2]]})).filter(o=>hav(A,o.ll)>ab+300&&hav(B,o.ll)<12e3)
+  .sort((x,y)=>hav(B,x.ll)-hav(B,y.ll)).slice(0,3)}
+function keyOf(id,n,ll){return Object.keys(RK).find(x=>RK[x]==id&&ST[x])||("s"+id)}
+function getOffAt(o,beyond){if(!TR)return;const legs=tripLegs(TR.id,TR.ph),j=TR.li,l=legs[j];if(!l)return;
+ const st=legStops(l),tot=st?st[st.length-1].cum||1:1,k=keyOf(o.id);
+ let f;if(beyond)f=1+hav(kLL(l[3]),o.ll)/Math.max(hav(kLL(l[2]),kLL(l[3])),1);else{const x=st.find(s=>s.id==o.id);f=x?Math.max(.05,x.cum/tot):1}
+ // índice del tramo dentro de la lista SIN recortes de esta fase
+ const c={j:TR.ph=="vuelta"?j:j,k,id:o.id,n:o.n,ll:o.ll,f:(f||1)*((TR.ph=="vuelta"?(TR.ce&&TR.ce.j==j?TR.ce.f:1):(TR.ci&&TR.ci.j==j?TR.ci.f:1))||1)};
+ if(TR.ph=="vuelta")TR.ce=c;else{TR.ci=c;TR.cv=Object.assign({},c)}
+ const sm=!!simT;simStop();regCV();TR.ns=0;TR.nsk=null;TR.nsa=null;TR.al={};PICK=false;SHOWST=false;save2();
+ toast(`Te bajas en ${o.n}`,"Te aviso antes de llegar.");say(`De acuerdo: te bajas en ${o.n}`);
+ if(sel==TR.id)panel();lmRoute();tripTick();tripRender(true);if(sm)simGo()}
+function pickHtml(l){const ns=nextStop(l);if(!ns)return "";const st=ns.st,from=ns.i;
+ const rows=st.slice(from,st.length-1).map(o=>`<li><span>${esc(o.n)}</span><button class="tw" data-off="${esc(o.id)}">Me bajo aquí</button></li>`).join("");
+ const bey=beyondStops(l).map(o=>`<li><span>${esc(o.n)} <small class="lt">(más allá)</small></span><button class="tw" data-offb="${esc(o.id)}">Me bajo aquí</button></li>`).join("");
+ return `<div class="tpchg"><p class="tpk">¿Dónde te bajas?</p><ul class="tpl pick">${rows}<li class="cur"><span><b>${esc(ST[l[3]][0]||"")}</b> (tu parada ahora)</span></li>${bey}</ul><button class="tpsx" data-a="pickx">Cancelar</button></div>`}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-off],[data-offb]");if(!b||!TR)return;e.preventDefault();e.stopPropagation();
+ const id=b.dataset.off||b.dataset.offb;getOffAt({id,n:RS[id][0],ll:[RS[id][1],RS[id][2]]},!!b.dataset.offb)},true);
 // qué debe decir el cartel del tren (otros de la misma línea pueden terminar antes)
 function dstHint(tr,l){if(!l||l[0]!="train")return "";const d=[...new Set(tr.filter(t=>!t.x).map(t=>t.dst))];if(!d.length)return "";
  const n=d.map(x=>`<b>${esc(x)}</b>`),txt=n.length==1?n[0]:n.slice(0,-1).join(", ")+" o "+n[n.length-1];
@@ -1573,7 +1600,8 @@ async function tripRender(force){
   ${stopsHtml(l,true)}
   ${legs[TR.li+1]?`<p class="tpm2">Después: ${legs[TR.li+1][0]=="walk"?"a pie":verb[legs[TR.li+1][0]].toLowerCase()+" "+lineB(legs[TR.li+1])} hasta ${esc(ST[legs[TR.li+1][3]][0])}.</p>`:""}
   ${TR.chg?`<div class="tpchg"><p class="tpk">Cambio de tren en ${esc(TR.chg.n)}: próximos a ${esc(ST[l[3]][0])}</p><div id="tpchgl"><p class="tpm2">Cargando…</p></div><button class="tpsx" data-a="chgx">Cerrar</button></div>`:""}
-  <div class="tpa">${l[0]=="train"&&isLive(l)&&!TR.chg?`<button class="tpbtn alt" data-a="chg">Cambio de tren aquí</button>`:""}<button class="tpbtn alt" data-a="off">Ya me bajé</button></div>`}
+  ${PICK&&l[0]=="train"?pickHtml(l):""}
+  <div class="tpa">${l[0]=="train"&&!PICK?`<button class="tpbtn alt" data-a="pick">Me bajo en otra parada</button>`:""}${l[0]=="train"&&isLive(l)&&!TR.chg?`<button class="tpbtn alt" data-a="chg">Cambio de tren aquí</button>`:""}<button class="tpbtn alt" data-a="off">Ya me bajé</button></div>`}
  else if(s.k=="dest"){const bl=tripLegs(TR.id,"vuelta"),st0=bl[0][2],d0=ME?hav(ME.ll,kLL(st0)):null,b=BACK(TR.id),rt=TR.rt;
   const opts=rt&&rt.k==0&&rt.next.length?rt.next:[];
   h=`<h3>Estás en ${esc(ST[TR.id][0])}</h3><p>Disfruta. Para volver sales de <b>${esc(ST[st0][0])}</b>${d0!=null?` (estás a ${mtxt(d0)}, ≈ ${walkMin(d0)} min a pie)`:""}.</p>
@@ -1583,7 +1611,7 @@ async function tripRender(force){
   ${TR.back&&rt?(()=>{const v=[...(rt.next||[]),rt.last].find(x=>x&&x.s==TR.back);return v?sumCard({h:v.s,arr:v.l,dst:"Badalona"},"Tu tren de vuelta"):""})():""}
   ${TR.back?`<p class="tpok">${TR.leave==null?`Aviso puesto para el tren de las ${TR.back}.`:TR.leave<=nowMin()?`Ya es hora de ir a la estación: el tren sale a las ${TR.back}.`:`Sal hacia la estación a las ${hmm(TR.leave)}${TR.leave-20>nowMin()?`. Te aviso a las ${hmm(TR.leave-20)} y a las ${hmm(TR.leave)}`:`. Te aviso a esa hora`}.`}</p>`:""}
   <div class="tpa"><button class="tpbtn" data-a="back">Volver ahora</button></div>`}
- else if(s.k=="fin"){h=TR.cv?`<h3>Llegaste a Badalona</h3><p>Volviste desde ${esc(TR.cv.n)}. ${esc(ST[TR.id][0])} queda pendiente para otro día.</p>${opShow()?opHtml("intrip"):""}<div class="tpa"><button class="tpbtn alt" data-a="end">Cerrar</button></div>`:`<h3>Llegaste a Badalona</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p>${opShow()?opHtml("intrip"):""}<div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
+ else if(s.k=="fin"){const _vl=tripLegs(TR.id,"vuelta"),_ln=ST[_vl[_vl.length-1][3]][0];h=TR.cv?`<h3>Llegaste a ${esc(_ln)}</h3><p>Volviste desde ${esc(TR.cv.n)}. ${esc(ST[TR.id][0])} queda pendiente para otro día.</p>${opShow()?opHtml("intrip"):""}<div class="tpa"><button class="tpbtn alt" data-a="end">Cerrar</button></div>`:`<h3>Llegaste a ${esc(_ln)}</h3><p>¡Buen viaje! ¿Lo marco como visitado?</p>${opShow()?opHtml("intrip"):""}<div class="tpa"><button class="tpbtn" data-a="vis">Marcar ${esc(ST[TR.id][0])} como visitado</button><button class="tpbtn alt" data-a="end">Cerrar</button></div>`}
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
  if(TR.ph=="ida")h+=`<button class="tpbtn alt tphome" data-a="home">🏠 Vuelvo a casa desde aquí</button>`;
@@ -1603,6 +1631,8 @@ document.addEventListener("click",e=>{const b=e.target.closest("#trip [data-a],#
  else if(a=="off"){TR.chg=null;advance()}
  else if(a=="chg"){const l=legs[TR.li],o=l&&chgStation(l);if(!o){toast("Acércate a una estación","Para ver los trenes desde ahí, tienes que estar en una estación de la línea.");return}TR.chg={id:o.id,n:o.n,ll:o.ll};save2();tripRender(true);return}
  else if(a=="home"){homeHere();return}
+ else if(a=="pick"){PICK=true;tripRender(true);return}
+ else if(a=="pickx"){PICK=false;tripRender(true);return}
  else if(a=="chgx"){TR.chg=null;save2();tripRender(true);return}
  else if(a=="next"){if(TR.ph=="dest"){TR.ph="vuelta";TR.li=0}else if(TR.ph!="fin")advance()}
  else if(a=="prev"){if(TR.ph=="fin"){TR.ph="vuelta";TR.li=Math.max(0,tripLegs(TR.id,"vuelta").length-1)}else if(TR.ph=="dest"){TR.ph="ida";TR.li=Math.max(0,tripLegs(TR.id,"ida").length-1)}else if(TR.li>0)TR.li--;else if(TR.ph=="vuelta"){TR.ph="dest"}TR.on=null;TR.seen=null}
