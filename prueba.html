@@ -440,6 +440,7 @@ body.tripon{padding-bottom:min(46vh,380px)}
 .tpl li .tw{margin-left:8px;padding:3px 10px;border-radius:99px;border:1.5px solid var(--line);background:none;color:var(--ink);font:600 13px Barlow,sans-serif;cursor:pointer}
 .tpl li .tw.on{background:#facc15;border-color:#facc15;color:#111}
 .twbox{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:light-dark(#fef9c3,#3a3410);font-size:15px;line-height:1.35}
+.twbox.miss{background:light-dark(#fee2e2,#3b1414)}.twbox ul{margin:6px 0;padding-left:18px}.twbox p{margin:6px 0 0}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#e8730c">
@@ -1473,7 +1474,7 @@ setInterval(()=>{if(TR){backCheck();if(!document.hidden)tripRender()}},20000);
 function askNotif(){try{if(window.Notification&&Notification.permission=="default")Notification.requestPermission()}catch(e){}}
 let AC=null;function beep(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();[0,.25].forEach(t=>{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=880;g.gain.setValueAtTime(.0001,AC.currentTime+t);g.gain.exponentialRampToValueAtTime(.3,AC.currentTime+t+.02);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+t+.2);o.connect(g).connect(AC.destination);o.start(AC.currentTime+t);o.stop(AC.currentTime+t+.22)})}catch(e){}}
 function toast(t,b){const el=document.getElementById("vtoast");el.innerHTML=`<b>${esc(t)}</b>${b?`<span>${esc(b)}</span>`:""}`;el.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove("on"),9000)}
-async function nfy(t,b,tag){toast(t,b);say(t);try{navigator.vibrate&&navigator.vibrate([300,150,300,150,500])}catch(e){}beep();
+async function nfy(t,b,tag){missLog(t,b);toast(t,b);say(t);try{navigator.vibrate&&navigator.vibrate([300,150,300,150,500])}catch(e){}beep();
  try{if(window.Notification&&Notification.permission=="granted"){const r=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(r)r.showNotification(t,{body:b||"",tag,renotify:true,icon:"icon-192.png",vibrate:[300,150,300]});else new Notification(t,{body:b||"",tag})}}catch(e){}}
 let WLK=null;async function wakeOn(){if(!TR||!TR.wl)return;try{WLK=await navigator.wakeLock.request("screen")}catch(e){}}
 function wakeOff(){try{WLK&&WLK.release()}catch(e){}WLK=null}
@@ -1484,10 +1485,22 @@ let LIVEC={},renderT=0;
 const lineB=l=>{const ln=LN[l[1]],c=ln.c;return `<span class="badge${c=="#f2b300"?" dk":c=="var(--reg)"?" rg":""}" style="--c:${c}">${ln.n}</span>`};
 const durTxt=m=>m<60?`${m} min`:`${Math.floor(m/60)} h ${String(m%60).padStart(2,"0")}`;
 const sumCard=(t,lbl)=>{if(!t)return "";let d=toMin(t.arr)-toMin(t.h);if(d<0)d+=1440;return `<div class="tsum"><span class="tsl">${lbl||"Próximo tren"}</span><b class="tsd">${durTxt(d)}</b><span class="tst">Salida <b>${t.h}</b> → Llegada <b>${t.arr}</b></span>${t.dst?`<span class="tsx">Destino ${esc(t.dst)}${t.a?` · andén ${esc(t.a)}`:""}</span>`:""}</div>`};
+// «Mientras no mirabas»: avisos dados con la app en segundo plano (o que no se pudieron dar) se resumen al volver
+function missLog(t,b,force){if(!TR)return;if(!force&&!document.hidden)return;TR.miss=(TR.miss||[]).concat([{h:hmm(nowMin()),t,b}]).slice(-6);save2()}
+function nowLine(){if(!TR)return "";const w=TR.watch;if(w){let left=toMin(w.h)-nowMin();if(left<-720)left+=1440;
+  return left>=0?`Ahora: tu tren de las <b>${esc(w.h)}</b> a ${esc(w.dst)} sale en <b>${durTxt(left)}</b>${w.a?`, andén ${esc(w.a)}`:""}.`:`Ahora: tu tren de las <b>${esc(w.h)}</b> ya salió. Toca «Cambio de tren aquí» para ver el siguiente.`}
+ const s=stage();return s&&s.k=="ride"?"Ahora: sigues en el tren; abajo tienes la próxima parada.":s&&s.k=="dest"?"Ahora: estás en destino; abajo tienes tu tren de vuelta.":""}
+function missHtml(){const m=TR&&TR.miss;if(!m||!m.length)return "";
+ return `<div class="twbox miss"><b>Mientras no mirabas la app:</b><ul>${m.map(x=>`<li><b>${x.h}</b> · ${esc(x.t)}${x.b?` — ${esc(x.b)}`:""}</li>`).join("")}</ul>${nowLine()?`<p>${nowLine()}</p>`:""}<button class="tpsx" data-miss="ok">Entendido</button></div>`}
+function missBack(){if(!TR||!TR.miss||!TR.miss.length)return;tripRender(true);try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}
+ const l=TR.miss[TR.miss.length-1];say("Mientras no mirabas: "+l.t);if(TR&&typeof showTrip=="function")showTrip()}
+addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(missBack,400)});
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-miss]");if(!b||!TR)return;TR.miss=[];save2();tripRender(true)});
 // «Avísame para este tren»: aviso 10 min y 3 min antes de que salga, estés donde estés
 function watchHtml(){const w=TR&&TR.watch;if(!w)return "";const left=toMin(w.h)-nowMin();
  return `<div class="twbox">⏰ Te aviso para el tren de <b>${esc(w.h)}</b> a ${esc(w.dst)}${w.a?` · andén ${esc(w.a)}`:""}${w.st?` desde ${esc(w.st)}`:""}${left>=0?` · sale en ${durTxt(left)}`:""}. <button class="tpsx" data-twx="1">Quitar</button></div>`}
 function watchCheck(){const w=TR&&TR.watch;if(!w)return;let left=toMin(w.h)-nowMin();if(left<-720)left+=1440;
+ if(left<-1&&!w.a3){w.a10=w.a3=1;missLog(`Tu tren de las ${w.h} ya salió`,`No te pude avisar: la app estaba cerrada o en segundo plano. Mira el siguiente en «Cambio de tren aquí».`,1)}
  if(left<=10&&!w.a10){w.a10=1;save2();nfy(`Tu tren sale en ${Math.max(left,0)} minutos`,`${w.l} de las ${w.h} a ${w.dst}${w.a?`, andén ${w.a}`:""}. Ve hacia el andén.`,"tw10");try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}beep()}
  if(left<=3&&!w.a3){w.a3=1;save2();nfy(`¡Tu tren sale ya!`,`${w.h} a ${w.dst}${w.a?`, andén ${w.a}`:""}.`,"tw3");try{navigator.vibrate&&navigator.vibrate([500,200,500])}catch(e){}beep()}
  if(left<-5){TR.watch=null;save2();tripRender(true)}}
@@ -1557,7 +1570,7 @@ async function tripRender(force){
  if(l&&(s.k=="go"||s.k=="board"))h+=avHtml(avOf([l]),1);
  const gs=GERR?`<span class="tpe">${esc(GERR)}</span>`:ME?`GPS ± ${Math.round(ME.acc)} m`:"Buscando GPS…";
  h+=`<div class="tpf"><button data-a="prev" aria-label="Paso anterior">‹ Paso</button><button data-a="next" aria-label="Paso siguiente">Paso ›</button><label class="tpw"><input type="checkbox" id="tpwl" ${TR.wl?"checked":""}> Pantalla encendida</label><label class="tpw"><input type="checkbox" id="tpvz" ${TR.voz!==false?"checked":""}> Voz</label>${SIMU?'<button data-a="sim">▶ Simular</button>':""}<span class="tpg">${gs}${RP?"":" · Sin horarios en vivo"}</span></div>`;
- box.innerHTML=watchHtml()+h;lmNext();
+ box.innerHTML=missHtml()+watchHtml()+h;lmNext();
  if((s.k=="board"||s.k=="go")&&liveTT(l)){const k=l[2]+">"+l[3];document.getElementById("tptr").innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
   if(!LIVEC[k]||Date.now()-LIVEC[k].t>45e3){LIVEC[k]={t:Date.now(),v:LIVEC[k]&&LIVEC[k].v};const v=await nextTrains(l);LIVEC[k]={t:Date.now(),v};const el=document.getElementById("tptr");if(el)el.innerHTML=trainsHtml(v,l)}}
  if(s.k=="ride"&&TR.chg){const el=document.getElementById("tpchgl"),k="chg>"+TR.chg.id+">"+l[3];if(el){el.innerHTML=trainsHtml(LIVEC[k]&&LIVEC[k].v,l);
@@ -1635,6 +1648,8 @@ if(typeof chips=="function"){const _ch=chips;chips=function(){_ch.apply(this,arg
  if(TR){showTrip();gpsOn();wakeOn();setTimeout(()=>{pick(TR.id);tripRender(true)},300)}else if(ok)gpsOn()})();
 
 try{opPaint()}catch(e){}
+
+try{setTimeout(()=>{watchCheck();missBack()},1500)}catch(e){}
 
 }
 </script>

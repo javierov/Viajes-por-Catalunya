@@ -1,4 +1,4 @@
-const CACHE="vc-viajes-v11",MAPA="vc-mapa";
+const CACHE="vc-viajes-v12",MAPA="vc-mapa";
 const FILES=["./","./index.html","./maplibre-gl.js","./manifest.webmanifest","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>Promise.all(FILES.map(f=>fetch(f,{cache:"reload"}).then(r=>r.ok&&c.put(f,r)).catch(()=>{})))));self.skipWaiting();});
 // solo borra copias propias (las demás apps viven en el mismo sitio)
